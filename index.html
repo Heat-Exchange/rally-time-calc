@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
@@ -176,10 +177,53 @@
         .time-setting-area {
             display: grid;
             grid-template-columns:
-                minmax(190px, 1fr)
-                minmax(190px, 1fr);
+                minmax(260px, 1fr)
+                minmax(230px, 1fr);
             gap: 14px;
             margin-top: 14px;
+        }
+
+        .clock-inputs {
+            display: grid;
+            grid-template-columns:
+                minmax(70px, 1fr)
+                auto
+                minmax(70px, 1fr)
+                auto
+                minmax(70px, 1fr);
+            align-items: center;
+            gap: 6px;
+        }
+
+        .clock-inputs input {
+            min-width: 0;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .clock-separator {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .clock-caption {
+            display: grid;
+            grid-template-columns:
+                minmax(70px, 1fr)
+                auto
+                minmax(70px, 1fr)
+                auto
+                minmax(70px, 1fr);
+            gap: 6px;
+            color: #667085;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .clock-caption span:nth-child(2),
+        .clock-caption span:nth-child(4) {
+            visibility: hidden;
         }
 
         .mode-explanation {
@@ -342,9 +386,6 @@
             line-height: 1.75;
         }
 
-        /*
-         * この領域は一括コピーの対象外です。
-         */
         .reference-time-display {
             margin-top: 12px;
             padding: 10px 12px;
@@ -411,6 +452,15 @@
             .march-minutes-mode {
                 grid-template-columns: 1fr 1fr;
             }
+
+            .clock-inputs {
+                grid-template-columns:
+                    minmax(60px, 1fr)
+                    auto
+                    minmax(60px, 1fr)
+                    auto
+                    minmax(60px, 1fr);
+            }
         }
     </style>
 </head>
@@ -440,7 +490,7 @@
         "use strict";
 
         const STORAGE_KEY =
-            "rallyCalculationToolDataV7";
+            "rallyCalculationToolDataV8";
 
         const MAX_RALLY_LEADERS_PER_WAVE = 6;
         const SECONDS_PER_DAY = 24 * 60 * 60;
@@ -486,37 +536,6 @@
                 ) +
                 SECONDS_PER_DAY
             ) % SECONDS_PER_DAY;
-        }
-
-        function timeToSeconds(timeText) {
-            const match =
-                /^(\d{2}):(\d{2}):(\d{2})$/
-                    .exec(timeText);
-
-            if (!match) {
-                return null;
-            }
-
-            const hours = Number(match[1]);
-            const minutes = Number(match[2]);
-            const seconds = Number(match[3]);
-
-            if (
-                hours < 0 ||
-                hours > 23 ||
-                minutes < 0 ||
-                minutes > 59 ||
-                seconds < 0 ||
-                seconds > 59
-            ) {
-                return null;
-            }
-
-            return (
-                hours * 3600 +
-                minutes * 60 +
-                seconds
-            );
         }
 
         function secondsToTime(totalSeconds) {
@@ -570,13 +589,153 @@
             );
         }
 
-        /*
-         * ウェーブ名が未入力なら、
-         * 「ウェーブ1」のように表示します。
-         *
-         * 入力済みなら、その名前を
-         * カード上部のタイトルに表示します。
-         */
+        function getReferenceTimeSeconds(wave) {
+            const hoursInput =
+                wave.querySelector(
+                    ".reference-hours"
+                );
+
+            const minutesInput =
+                wave.querySelector(
+                    ".reference-minutes"
+                );
+
+            const secondsInput =
+                wave.querySelector(
+                    ".reference-seconds"
+                );
+
+            const hours =
+                parseNonNegativeInteger(
+                    hoursInput.value
+                );
+
+            const minutes =
+                parseNonNegativeInteger(
+                    minutesInput.value
+                );
+
+            const seconds =
+                parseNonNegativeInteger(
+                    secondsInput.value
+                );
+
+            if (
+                hours === null ||
+                minutes === null ||
+                seconds === null
+            ) {
+                return null;
+            }
+
+            if (
+                hours > 23 ||
+                minutes > 59 ||
+                seconds > 59
+            ) {
+                return null;
+            }
+
+            return (
+                hours * 3600 +
+                minutes * 60 +
+                seconds
+            );
+        }
+
+        function setReferenceTimeFromSeconds(
+            wave,
+            totalSeconds
+        ) {
+            const normalized =
+                normalizeSeconds(totalSeconds);
+
+            const hours =
+                Math.floor(
+                    normalized / 3600
+                );
+
+            const minutes =
+                Math.floor(
+                    (
+                        normalized % 3600
+                    ) / 60
+                );
+
+            const seconds =
+                normalized % 60;
+
+            wave.querySelector(
+                ".reference-hours"
+            ).value =
+                String(hours).padStart(2, "0");
+
+            wave.querySelector(
+                ".reference-minutes"
+            ).value =
+                String(minutes).padStart(2, "0");
+
+            wave.querySelector(
+                ".reference-seconds"
+            ).value =
+                String(seconds).padStart(2, "0");
+        }
+
+        function normalizeReferenceTimeInputs(
+            wave
+        ) {
+            const hoursInput =
+                wave.querySelector(
+                    ".reference-hours"
+                );
+
+            const minutesInput =
+                wave.querySelector(
+                    ".reference-minutes"
+                );
+
+            const secondsInput =
+                wave.querySelector(
+                    ".reference-seconds"
+                );
+
+            const hours =
+                parseNonNegativeInteger(
+                    hoursInput.value
+                );
+
+            const minutes =
+                parseNonNegativeInteger(
+                    minutesInput.value
+                );
+
+            const seconds =
+                parseNonNegativeInteger(
+                    secondsInput.value
+                );
+
+            if (hours !== null) {
+                hoursInput.value =
+                    String(
+                        Math.min(hours, 23)
+                    ).padStart(2, "0");
+            }
+
+            if (minutes !== null) {
+                minutesInput.value =
+                    String(
+                        Math.min(minutes, 59)
+                    ).padStart(2, "0");
+            }
+
+            if (seconds !== null) {
+                secondsInput.value =
+                    String(
+                        Math.min(seconds, 59)
+                    ).padStart(2, "0");
+            }
+        }
+
         function updateWaveTitles() {
             waveContainer
                 .querySelectorAll(".wave")
@@ -586,12 +745,9 @@
                             ".wave-name"
                         ).value.trim();
 
-                    const title =
-                        wave.querySelector(
-                            ".wave-title"
-                        );
-
-                    title.textContent =
+                    wave.querySelector(
+                        ".wave-title"
+                    ).textContent =
                         waveName ||
                         `ウェーブ ${index + 1}`;
                 });
@@ -610,12 +766,6 @@
             );
         }
 
-        /*
-         * 合計秒数から分・秒へ変換します。
-         *
-         * 例：
-         * 155秒 → 2分35秒
-         */
         function syncMinuteSecondFromTotal(
             rallyLeader
         ) {
@@ -654,12 +804,6 @@
                 totalSeconds % 60;
         }
 
-        /*
-         * 分・秒から合計秒数へ変換します。
-         *
-         * 秒欄へ60以上を入力しても、
-         * 正常に合計秒数へ変換します。
-         */
         function syncTotalFromMinuteSecond(
             rallyLeader,
             normalizeDisplay = false
@@ -703,10 +847,6 @@
             totalInput.value =
                 totalSeconds;
 
-            /*
-             * 入力確定時のみ、
-             * 90秒などを1分30秒へ整えます。
-             */
             if (normalizeDisplay) {
                 minutesInput.value =
                     Math.floor(
@@ -734,9 +874,9 @@
                     ".mode-explanation"
                 );
 
-            const relativeControls =
+            const relativeTimeField =
                 wave.querySelector(
-                    ".relative-time-controls"
+                    ".relative-time-field"
                 );
 
             if (
@@ -748,7 +888,7 @@
                 explanation.textContent =
                     "最も行軍時間が長い集結主が、この時刻に最初に出発します。その集結主の着弾時間を基準として、ほかの集結主の出発時間を逆算します。";
 
-                relativeControls.hidden =
+                relativeTimeField.hidden =
                     false;
             } else {
                 timeLabel.textContent =
@@ -757,15 +897,11 @@
                 explanation.textContent =
                     "すべての集結主が指定した時刻に着弾するように、それぞれの出発時間を逆算します。";
 
-                relativeControls.hidden =
+                relativeTimeField.hidden =
                     true;
             }
         }
 
-        /*
-         * 行軍時間入力方式に応じて、
-         * 使用する入力欄だけを表示します。
-         */
         function updateMarchInputMode(wave) {
             const inputMode =
                 wave.querySelector(
@@ -788,10 +924,6 @@
                 if (
                     inputMode === "seconds"
                 ) {
-                    /*
-                     * 分・秒で入力済みの場合も、
-                     * 合計秒数へ変換してから表示します。
-                     */
                     if (
                         rallyLeader.querySelector(
                             ".march-total-seconds"
@@ -810,10 +942,6 @@
                         "hidden"
                     );
                 } else {
-                    /*
-                     * 合計秒数から、
-                     * 分・秒表示を作ります。
-                     */
                     syncMinuteSecondFromTotal(
                         rallyLeader
                     );
@@ -891,30 +1019,16 @@
 
             const now = new Date();
 
-            now.setSeconds(
+            const totalSeconds =
+                now.getHours() * 3600 +
+                now.getMinutes() * 60 +
                 now.getSeconds() +
-                offsetSeconds
+                offsetSeconds;
+
+            setReferenceTimeFromSeconds(
+                wave,
+                totalSeconds
             );
-
-            const hours =
-                String(
-                    now.getHours()
-                ).padStart(2, "0");
-
-            const minutes =
-                String(
-                    now.getMinutes()
-                ).padStart(2, "0");
-
-            const seconds =
-                String(
-                    now.getSeconds()
-                ).padStart(2, "0");
-
-            wave.querySelector(
-                ".reference-time-input"
-            ).value =
-                `${hours}:${minutes}:${seconds}`;
 
             saveAllData();
             scheduleCalculation(wave);
@@ -988,9 +1102,7 @@
                 <div class="march-input-area">
                     <div class="march-seconds-mode">
                         <div class="field">
-                            <label>
-                                行軍時間
-                            </label>
+                            <label>行軍時間</label>
 
                             <input
                                 type="number"
@@ -1044,10 +1156,10 @@
                 </button>
             `;
 
-            const nameInput =
-                rallyLeader.querySelector(
-                    ".rally-leader-name"
-                );
+            rallyLeader.querySelector(
+                ".rally-leader-name"
+            ).value =
+                data.name ?? "";
 
             const totalInput =
                 rallyLeader.querySelector(
@@ -1063,9 +1175,6 @@
                 rallyLeader.querySelector(
                     ".march-seconds"
                 );
-
-            nameInput.value =
-                data.name ?? "";
 
             if (
                 data.marchTotalSeconds !==
@@ -1144,22 +1253,18 @@
                 <div class="wave-body">
                     <div class="wave-settings">
                         <div class="field">
-                            <label>
-                                ウェーブ名
-                            </label>
+                            <label>ウェーブ名</label>
 
                             <input
                                 type="text"
                                 class="wave-name"
-                                placeholder="例：城門攻撃 第1波"
+                                placeholder="任意"
                                 autocomplete="off"
                             >
                         </div>
 
                         <div class="field">
-                            <label>
-                                計算モード
-                            </label>
+                            <label>計算モード</label>
 
                             <select class="calculation-mode">
                                 <option value="rally">
@@ -1195,11 +1300,52 @@
                                 集結開始時間
                             </label>
 
-                            <input
-                                type="time"
-                                class="reference-time-input"
-                                step="1"
-                            >
+                            <div class="clock-inputs">
+                                <input
+                                    type="number"
+                                    class="reference-hours"
+                                    min="0"
+                                    max="23"
+                                    step="1"
+                                    inputmode="numeric"
+                                    placeholder="時"
+                                    aria-label="時"
+                                >
+
+                                <span class="clock-separator">:</span>
+
+                                <input
+                                    type="number"
+                                    class="reference-minutes"
+                                    min="0"
+                                    max="59"
+                                    step="1"
+                                    inputmode="numeric"
+                                    placeholder="分"
+                                    aria-label="分"
+                                >
+
+                                <span class="clock-separator">:</span>
+
+                                <input
+                                    type="number"
+                                    class="reference-seconds"
+                                    min="0"
+                                    max="59"
+                                    step="1"
+                                    inputmode="numeric"
+                                    placeholder="秒"
+                                    aria-label="秒"
+                                >
+                            </div>
+
+                            <div class="clock-caption">
+                                <span>時</span>
+                                <span>:</span>
+                                <span>分</span>
+                                <span>:</span>
+                                <span>秒</span>
+                            </div>
                         </div>
 
                         <div class="field relative-time-field">
@@ -1309,14 +1455,61 @@
                 "seconds";
 
             wave.querySelector(
-                ".reference-time-input"
-            ).value =
-                data.referenceTime ?? "";
-
-            wave.querySelector(
                 ".relative-seconds-input"
             ).value =
                 data.relativeSeconds ?? 30;
+
+            const savedHours =
+                data.referenceHours;
+
+            const savedMinutes =
+                data.referenceMinutes;
+
+            const savedSeconds =
+                data.referenceSeconds;
+
+            if (
+                savedHours !== undefined ||
+                savedMinutes !== undefined ||
+                savedSeconds !== undefined
+            ) {
+                wave.querySelector(
+                    ".reference-hours"
+                ).value =
+                    savedHours ?? "";
+
+                wave.querySelector(
+                    ".reference-minutes"
+                ).value =
+                    savedMinutes ?? "";
+
+                wave.querySelector(
+                    ".reference-seconds"
+                ).value =
+                    savedSeconds ?? "";
+            } else if (
+                typeof data.referenceTime ===
+                    "string" &&
+                data.referenceTime !== ""
+            ) {
+                const parts =
+                    data.referenceTime.split(":");
+
+                wave.querySelector(
+                    ".reference-hours"
+                ).value =
+                    parts[0] ?? "";
+
+                wave.querySelector(
+                    ".reference-minutes"
+                ).value =
+                    parts[1] ?? "";
+
+                wave.querySelector(
+                    ".reference-seconds"
+                ).value =
+                    parts[2] ?? "00";
+            }
 
             waveContainer.appendChild(wave);
 
@@ -1351,20 +1544,10 @@
         }
 
         function calculateWave(wave) {
-            const waveNameInput =
-                wave.querySelector(
-                    ".wave-name"
-                );
-
-            const calculationModeInput =
+            const calculationMode =
                 wave.querySelector(
                     ".calculation-mode"
-                );
-
-            const referenceTimeInput =
-                wave.querySelector(
-                    ".reference-time-input"
-                );
+                ).value;
 
             const waveError =
                 wave.querySelector(
@@ -1381,36 +1564,43 @@
                     ".waiting-message"
                 );
 
-            [
-                waveNameInput,
-                referenceTimeInput
-            ].forEach(clearInputError);
+            const timeInputs = [
+                wave.querySelector(
+                    ".reference-hours"
+                ),
+                wave.querySelector(
+                    ".reference-minutes"
+                ),
+                wave.querySelector(
+                    ".reference-seconds"
+                )
+            ];
+
+            timeInputs.forEach(
+                clearInputError
+            );
 
             waveError.textContent = "";
 
             const referenceSeconds =
-                timeToSeconds(
-                    referenceTimeInput.value
-                );
+                getReferenceTimeSeconds(wave);
 
             let hasError = false;
             let hasIncompleteInput = false;
 
-            if (
-                !waveNameInput.value.trim()
-            ) {
-                hasIncompleteInput = true;
-            }
+            const hasEmptyTimeInput =
+                timeInputs.some(
+                    input =>
+                        input.value === ""
+                );
 
-            if (
-                referenceTimeInput.value === ""
-            ) {
+            if (hasEmptyTimeInput) {
                 hasIncompleteInput = true;
             } else if (
                 referenceSeconds === null
             ) {
-                setInputError(
-                    referenceTimeInput
+                timeInputs.forEach(
+                    setInputError
                 );
 
                 hasError = true;
@@ -1493,20 +1683,15 @@
                 return;
             }
 
-            /*
-             * 入力途中ではエラーにせず、
-             * 結果を待機表示にします。
-             */
             if (hasIncompleteInput) {
                 clearResult(wave);
                 return;
             }
 
-            const calculationMode =
-                calculationModeInput.value;
-
             const waveName =
-                waveNameInput.value.trim();
+                wave.querySelector(
+                    ".wave-name"
+                ).value.trim();
 
             const longestMarchSeconds =
                 Math.max(
@@ -1522,12 +1707,6 @@
             if (
                 calculationMode === "rally"
             ) {
-                /*
-                 * 集結開始時間起点
-                 *
-                 * 最長の行軍時間を持つ集結主が、
-                 * 入力された時刻に出発します。
-                 */
                 firstDepartureSeconds =
                     referenceSeconds;
 
@@ -1535,12 +1714,6 @@
                     firstDepartureSeconds +
                     longestMarchSeconds;
             } else {
-                /*
-                 * 着弾時間起点
-                 *
-                 * 入力された時刻を、
-                 * 全員共通の着弾時間にします。
-                 */
                 commonArrivalSeconds =
                     referenceSeconds;
 
@@ -1549,10 +1722,6 @@
                     longestMarchSeconds;
             }
 
-            /*
-             * 共通着弾時間から、
-             * 各集結主の出発時刻を逆算します。
-             */
             const resultData =
                 calculationData.map(item => {
                     const departureSeconds =
@@ -1571,13 +1740,6 @@
                     };
                 });
 
-            /*
-             * 集結を早く出す順に並べます。
-             *
-             * 日付をまたぐ場合を考慮し、
-             * 最初の出発時刻からの
-             * 経過秒数で比較します。
-             */
             resultData.sort((a, b) => {
                 const elapsedA =
                     normalizeSeconds(
@@ -1615,7 +1777,15 @@
                 );
             });
 
-            const copyLines = [waveName];
+            /*
+             * ウェーブ名が空欄なら、
+             * 結果の先頭にも何も追加しません。
+             */
+            const copyLines = [];
+
+            if (waveName !== "") {
+                copyLines.push(waveName);
+            }
 
             resultData.forEach(item => {
                 copyLines.push(
@@ -1628,7 +1798,8 @@
 
             resultPanel.querySelector(
                 ".copy-preview"
-            ).textContent = copyText;
+            ).textContent =
+                copyText;
 
             resultPanel.dataset.copyText =
                 copyText;
@@ -1709,9 +1880,19 @@
                                 ".march-input-mode"
                             ).value,
 
-                        referenceTime:
+                        referenceHours:
                             wave.querySelector(
-                                ".reference-time-input"
+                                ".reference-hours"
+                            ).value,
+
+                        referenceMinutes:
+                            wave.querySelector(
+                                ".reference-minutes"
+                            ).value,
+
+                        referenceSeconds:
+                            wave.querySelector(
+                                ".reference-seconds"
                             ).value,
 
                         relativeSeconds:
@@ -1887,9 +2068,19 @@
                         ".march-input-mode"
                     ).value,
 
-                referenceTime:
+                referenceHours:
                     sourceWave.querySelector(
-                        ".reference-time-input"
+                        ".reference-hours"
+                    ).value,
+
+                referenceMinutes:
+                    sourceWave.querySelector(
+                        ".reference-minutes"
+                    ).value,
+
+                referenceSeconds:
+                    sourceWave.querySelector(
+                        ".reference-seconds"
                     ).value,
 
                 relativeSeconds:
@@ -2132,6 +2323,22 @@
                     target.closest(
                         ".rally-leader"
                     );
+
+                if (
+                    target.classList.contains(
+                        "reference-hours"
+                    ) ||
+                    target.classList.contains(
+                        "reference-minutes"
+                    ) ||
+                    target.classList.contains(
+                        "reference-seconds"
+                    )
+                ) {
+                    normalizeReferenceTimeInputs(
+                        wave
+                    );
+                }
 
                 if (
                     rallyLeader &&
