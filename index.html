@@ -1,0 +1,2182 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>集結時間計算ツール</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            color: #222;
+            background: #f3f5f8;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                "Hiragino Kaku Gothic ProN",
+                "Yu Gothic",
+                Meiryo,
+                sans-serif;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: 0;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .page-container {
+            width: min(1100px, 100%);
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+        }
+
+        .page-description {
+            margin: 0 0 22px;
+            color: #667085;
+        }
+
+        .primary-button {
+            color: #fff;
+            background: #1769e0;
+        }
+
+        .secondary-button {
+            color: #222;
+            background: #e8edf5;
+        }
+
+        .copy-button {
+            color: #fff;
+            background: #18794e;
+        }
+
+        .danger-button {
+            color: #b42318;
+            background: #fff0f0;
+        }
+
+        .copied {
+            background: #555;
+        }
+
+        .top-actions {
+            margin-bottom: 20px;
+        }
+
+        #waveContainer {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .wave {
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid #d9dee8;
+            border-radius: 12px;
+            box-shadow:
+                0 3px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .wave-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px 20px;
+            background: #edf3ff;
+            border-bottom: 1px solid #d9dee8;
+        }
+
+        .wave-title {
+            min-width: 0;
+            margin: 0;
+            overflow-wrap: anywhere;
+            font-size: 20px;
+        }
+
+        .wave-header-actions {
+            display: flex;
+            flex-shrink: 0;
+            gap: 8px;
+        }
+
+        .wave-body {
+            padding: 20px;
+        }
+
+        .wave-settings {
+            display: grid;
+            grid-template-columns:
+                minmax(180px, 1fr)
+                minmax(190px, 1fr)
+                minmax(180px, 0.85fr);
+            gap: 14px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field label {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        input,
+        select {
+            width: 100%;
+            min-height: 42px;
+            padding: 8px 10px;
+            background: #fff;
+            border: 1px solid #b9c1ce;
+            border-radius: 6px;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #1769e0;
+            outline:
+                3px solid rgba(23, 105, 224, 0.15);
+        }
+
+        .input-error {
+            background: #fff1f1;
+            border-color: #d93025;
+        }
+
+        .time-setting-area {
+            display: grid;
+            grid-template-columns:
+                minmax(190px, 1fr)
+                minmax(190px, 1fr);
+            gap: 14px;
+            margin-top: 14px;
+        }
+
+        .mode-explanation {
+            margin-top: 12px;
+            padding: 10px 12px;
+            color: #475467;
+            background: #f8fafc;
+            border-radius: 7px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .relative-time-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            margin-top: 3px;
+        }
+
+        .relative-time-controls button {
+            padding: 7px 10px;
+            font-size: 13px;
+        }
+
+        .custom-relative-time {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .custom-relative-time input {
+            width: 78px;
+            min-height: 34px;
+            padding: 5px 8px;
+        }
+
+        .custom-relative-time span {
+            white-space: nowrap;
+            color: #667085;
+            font-size: 13px;
+        }
+
+        .rally-leader-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 22px 0 10px;
+        }
+
+        .rally-leader-toolbar h3 {
+            margin: 0;
+        }
+
+        .rally-leader-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .rally-leader-list.list-error {
+            padding: 6px;
+            background: #fff1f1;
+            border: 1px solid #d93025;
+            border-radius: 8px;
+        }
+
+        .rally-leader {
+            display: grid;
+            grid-template-columns:
+                minmax(190px, 1.15fr)
+                minmax(240px, 1.35fr)
+                auto;
+            gap: 12px;
+            align-items: end;
+            padding: 14px;
+            background: #fafbfc;
+            border: 1px solid #dfe3ea;
+            border-radius: 8px;
+        }
+
+        .march-input-area {
+            min-width: 0;
+        }
+
+        .march-seconds-mode,
+        .march-minutes-mode {
+            width: 100%;
+        }
+
+        .march-minutes-mode {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .march-seconds-input {
+            font-weight: 700;
+        }
+
+        .sub-input-label {
+            color: #667085;
+            font-size: 12px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .error-message {
+            min-height: 20px;
+            margin-top: 7px;
+            color: #c62828;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .waiting-message {
+            margin-top: 20px;
+            padding: 14px;
+            color: #667085;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+        }
+
+        .wave-result-panel {
+            display: none;
+            margin-top: 20px;
+            padding: 16px;
+            background: #f7fbf8;
+            border: 1px solid #b8d8c5;
+            border-radius: 9px;
+        }
+
+        .wave-result-panel.visible {
+            display: block;
+        }
+
+        .result-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .result-panel-header h3 {
+            margin: 0;
+        }
+
+        .copy-preview {
+            margin-top: 12px;
+            padding: 12px;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            background: #fff;
+            border: 1px solid #d5e5da;
+            border-radius: 7px;
+            line-height: 1.75;
+        }
+
+        /*
+         * この領域は一括コピーの対象外です。
+         */
+        .reference-time-display {
+            margin-top: 12px;
+            padding: 10px 12px;
+            color: #536273;
+            background: #eef2f6;
+            border-radius: 7px;
+            font-size: 14px;
+            line-height: 1.8;
+
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .reference-time-display strong {
+            color: #222;
+            font-size: 17px;
+        }
+
+        @media (max-width: 900px) {
+            .wave-settings,
+            .time-setting-area {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .rally-leader {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .rally-leader .remove-rally-leader-button {
+                grid-column: 1 / -1;
+            }
+        }
+
+        @media (max-width: 620px) {
+            body {
+                padding: 12px;
+            }
+
+            .wave-header,
+            .rally-leader-toolbar,
+            .result-panel-header {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .wave-settings,
+            .time-setting-area,
+            .rally-leader {
+                grid-template-columns: 1fr;
+            }
+
+            .rally-leader .remove-rally-leader-button {
+                grid-column: auto;
+            }
+
+            .wave-header-actions {
+                width: 100%;
+            }
+
+            .wave-header-actions button {
+                flex: 1;
+            }
+
+            .march-minutes-mode {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="page-container">
+        <h1>集結時間計算ツール</h1>
+
+        <p class="page-description">
+            入力内容を変更すると、自動的に計算結果が更新されます。
+        </p>
+
+        <div class="top-actions">
+            <button
+                type="button"
+                id="addWaveButton"
+                class="primary-button"
+            >
+                ＋ ウェーブを追加
+            </button>
+        </div>
+
+        <div id="waveContainer"></div>
+    </main>
+
+    <script>
+        "use strict";
+
+        const STORAGE_KEY =
+            "rallyCalculationToolDataV7";
+
+        const MAX_RALLY_LEADERS_PER_WAVE = 6;
+        const SECONDS_PER_DAY = 24 * 60 * 60;
+
+        const waveContainer =
+            document.getElementById(
+                "waveContainer"
+            );
+
+        const addWaveButton =
+            document.getElementById(
+                "addWaveButton"
+            );
+
+        const calculationTimers =
+            new WeakMap();
+
+        function createId(prefix) {
+            if (
+                window.crypto &&
+                typeof window.crypto.randomUUID ===
+                    "function"
+            ) {
+                return (
+                    `${prefix}-` +
+                    window.crypto.randomUUID()
+                );
+            }
+
+            return (
+                `${prefix}-${Date.now()}-` +
+                Math.random()
+                    .toString(16)
+                    .slice(2)
+            );
+        }
+
+        function normalizeSeconds(totalSeconds) {
+            return (
+                (
+                    totalSeconds %
+                    SECONDS_PER_DAY
+                ) +
+                SECONDS_PER_DAY
+            ) % SECONDS_PER_DAY;
+        }
+
+        function timeToSeconds(timeText) {
+            const match =
+                /^(\d{2}):(\d{2}):(\d{2})$/
+                    .exec(timeText);
+
+            if (!match) {
+                return null;
+            }
+
+            const hours = Number(match[1]);
+            const minutes = Number(match[2]);
+            const seconds = Number(match[3]);
+
+            if (
+                hours < 0 ||
+                hours > 23 ||
+                minutes < 0 ||
+                minutes > 59 ||
+                seconds < 0 ||
+                seconds > 59
+            ) {
+                return null;
+            }
+
+            return (
+                hours * 3600 +
+                minutes * 60 +
+                seconds
+            );
+        }
+
+        function secondsToTime(totalSeconds) {
+            let normalized =
+                normalizeSeconds(totalSeconds);
+
+            const hours =
+                Math.floor(normalized / 3600);
+
+            normalized %= 3600;
+
+            const minutes =
+                Math.floor(normalized / 60);
+
+            const seconds =
+                normalized % 60;
+
+            return [
+                String(hours).padStart(2, "0"),
+                String(minutes).padStart(2, "0"),
+                String(seconds).padStart(2, "0")
+            ].join(":");
+        }
+
+        function parseNonNegativeInteger(value) {
+            if (value === "") {
+                return null;
+            }
+
+            const number = Number(value);
+
+            if (
+                !Number.isInteger(number) ||
+                number < 0
+            ) {
+                return null;
+            }
+
+            return number;
+        }
+
+        function clearInputError(input) {
+            input.classList.remove(
+                "input-error"
+            );
+        }
+
+        function setInputError(input) {
+            input.classList.add(
+                "input-error"
+            );
+        }
+
+        /*
+         * ウェーブ名が未入力なら、
+         * 「ウェーブ1」のように表示します。
+         *
+         * 入力済みなら、その名前を
+         * カード上部のタイトルに表示します。
+         */
+        function updateWaveTitles() {
+            waveContainer
+                .querySelectorAll(".wave")
+                .forEach((wave, index) => {
+                    const waveName =
+                        wave.querySelector(
+                            ".wave-name"
+                        ).value.trim();
+
+                    const title =
+                        wave.querySelector(
+                            ".wave-title"
+                        );
+
+                    title.textContent =
+                        waveName ||
+                        `ウェーブ ${index + 1}`;
+                });
+        }
+
+        function updateRallyLeaderNumbers(wave) {
+            wave.querySelectorAll(
+                ".rally-leader"
+            ).forEach(
+                (rallyLeader, index) => {
+                    rallyLeader.querySelector(
+                        ".rally-leader-number"
+                    ).textContent =
+                        `集結主 ${index + 1}`;
+                }
+            );
+        }
+
+        /*
+         * 合計秒数から分・秒へ変換します。
+         *
+         * 例：
+         * 155秒 → 2分35秒
+         */
+        function syncMinuteSecondFromTotal(
+            rallyLeader
+        ) {
+            const totalInput =
+                rallyLeader.querySelector(
+                    ".march-total-seconds"
+                );
+
+            const minutesInput =
+                rallyLeader.querySelector(
+                    ".march-minutes"
+                );
+
+            const secondsInput =
+                rallyLeader.querySelector(
+                    ".march-seconds"
+                );
+
+            const totalSeconds =
+                parseNonNegativeInteger(
+                    totalInput.value
+                );
+
+            if (totalSeconds === null) {
+                minutesInput.value = "";
+                secondsInput.value = "";
+                return;
+            }
+
+            minutesInput.value =
+                Math.floor(
+                    totalSeconds / 60
+                );
+
+            secondsInput.value =
+                totalSeconds % 60;
+        }
+
+        /*
+         * 分・秒から合計秒数へ変換します。
+         *
+         * 秒欄へ60以上を入力しても、
+         * 正常に合計秒数へ変換します。
+         */
+        function syncTotalFromMinuteSecond(
+            rallyLeader,
+            normalizeDisplay = false
+        ) {
+            const totalInput =
+                rallyLeader.querySelector(
+                    ".march-total-seconds"
+                );
+
+            const minutesInput =
+                rallyLeader.querySelector(
+                    ".march-minutes"
+                );
+
+            const secondsInput =
+                rallyLeader.querySelector(
+                    ".march-seconds"
+                );
+
+            const minutes =
+                parseNonNegativeInteger(
+                    minutesInput.value
+                );
+
+            const seconds =
+                parseNonNegativeInteger(
+                    secondsInput.value
+                );
+
+            if (
+                minutes === null ||
+                seconds === null
+            ) {
+                totalInput.value = "";
+                return;
+            }
+
+            const totalSeconds =
+                minutes * 60 + seconds;
+
+            totalInput.value =
+                totalSeconds;
+
+            /*
+             * 入力確定時のみ、
+             * 90秒などを1分30秒へ整えます。
+             */
+            if (normalizeDisplay) {
+                minutesInput.value =
+                    Math.floor(
+                        totalSeconds / 60
+                    );
+
+                secondsInput.value =
+                    totalSeconds % 60;
+            }
+        }
+
+        function updateModeDisplay(wave) {
+            const calculationMode =
+                wave.querySelector(
+                    ".calculation-mode"
+                ).value;
+
+            const timeLabel =
+                wave.querySelector(
+                    ".reference-time-label"
+                );
+
+            const explanation =
+                wave.querySelector(
+                    ".mode-explanation"
+                );
+
+            const relativeControls =
+                wave.querySelector(
+                    ".relative-time-controls"
+                );
+
+            if (
+                calculationMode === "rally"
+            ) {
+                timeLabel.textContent =
+                    "集結開始時間";
+
+                explanation.textContent =
+                    "最も行軍時間が長い集結主が、この時刻に最初に出発します。その集結主の着弾時間を基準として、ほかの集結主の出発時間を逆算します。";
+
+                relativeControls.hidden =
+                    false;
+            } else {
+                timeLabel.textContent =
+                    "着弾時間";
+
+                explanation.textContent =
+                    "すべての集結主が指定した時刻に着弾するように、それぞれの出発時間を逆算します。";
+
+                relativeControls.hidden =
+                    true;
+            }
+        }
+
+        /*
+         * 行軍時間入力方式に応じて、
+         * 使用する入力欄だけを表示します。
+         */
+        function updateMarchInputMode(wave) {
+            const inputMode =
+                wave.querySelector(
+                    ".march-input-mode"
+                ).value;
+
+            wave.querySelectorAll(
+                ".rally-leader"
+            ).forEach(rallyLeader => {
+                const secondsMode =
+                    rallyLeader.querySelector(
+                        ".march-seconds-mode"
+                    );
+
+                const minutesMode =
+                    rallyLeader.querySelector(
+                        ".march-minutes-mode"
+                    );
+
+                if (
+                    inputMode === "seconds"
+                ) {
+                    /*
+                     * 分・秒で入力済みの場合も、
+                     * 合計秒数へ変換してから表示します。
+                     */
+                    if (
+                        rallyLeader.querySelector(
+                            ".march-total-seconds"
+                        ).value === ""
+                    ) {
+                        syncTotalFromMinuteSecond(
+                            rallyLeader
+                        );
+                    }
+
+                    secondsMode.classList.remove(
+                        "hidden"
+                    );
+
+                    minutesMode.classList.add(
+                        "hidden"
+                    );
+                } else {
+                    /*
+                     * 合計秒数から、
+                     * 分・秒表示を作ります。
+                     */
+                    syncMinuteSecondFromTotal(
+                        rallyLeader
+                    );
+
+                    secondsMode.classList.add(
+                        "hidden"
+                    );
+
+                    minutesMode.classList.remove(
+                        "hidden"
+                    );
+                }
+            });
+        }
+
+        function clearResult(wave) {
+            const panel =
+                wave.querySelector(
+                    ".wave-result-panel"
+                );
+
+            const waiting =
+                wave.querySelector(
+                    ".waiting-message"
+                );
+
+            panel.classList.remove(
+                "visible"
+            );
+
+            panel.dataset.copyText = "";
+
+            panel.querySelector(
+                ".copy-preview"
+            ).textContent = "";
+
+            panel.querySelector(
+                ".reference-time-display"
+            ).textContent = "";
+
+            waiting.hidden = false;
+        }
+
+        function scheduleCalculation(wave) {
+            const oldTimer =
+                calculationTimers.get(wave);
+
+            if (oldTimer) {
+                clearTimeout(oldTimer);
+            }
+
+            const newTimer =
+                setTimeout(() => {
+                    calculateWave(wave);
+                }, 80);
+
+            calculationTimers.set(
+                wave,
+                newTimer
+            );
+        }
+
+        function setTimeFromNow(
+            wave,
+            offsetSeconds
+        ) {
+            if (
+                !Number.isInteger(
+                    offsetSeconds
+                ) ||
+                offsetSeconds < 0
+            ) {
+                return;
+            }
+
+            const now = new Date();
+
+            now.setSeconds(
+                now.getSeconds() +
+                offsetSeconds
+            );
+
+            const hours =
+                String(
+                    now.getHours()
+                ).padStart(2, "0");
+
+            const minutes =
+                String(
+                    now.getMinutes()
+                ).padStart(2, "0");
+
+            const seconds =
+                String(
+                    now.getSeconds()
+                ).padStart(2, "0");
+
+            wave.querySelector(
+                ".reference-time-input"
+            ).value =
+                `${hours}:${minutes}:${seconds}`;
+
+            saveAllData();
+            scheduleCalculation(wave);
+        }
+
+        function addRallyLeader(
+            wave,
+            data = {}
+        ) {
+            const rallyLeaderList =
+                wave.querySelector(
+                    ".rally-leader-list"
+                );
+
+            const currentCount =
+                rallyLeaderList.querySelectorAll(
+                    ".rally-leader"
+                ).length;
+
+            const limitError =
+                wave.querySelector(
+                    ".rally-leader-limit-error"
+                );
+
+            if (
+                currentCount >=
+                MAX_RALLY_LEADERS_PER_WAVE
+            ) {
+                limitError.textContent =
+                    `集結主は1ウェーブにつき最大${MAX_RALLY_LEADERS_PER_WAVE}名です。`;
+
+                rallyLeaderList.classList.add(
+                    "list-error"
+                );
+
+                return;
+            }
+
+            limitError.textContent = "";
+
+            rallyLeaderList.classList.remove(
+                "list-error"
+            );
+
+            const rallyLeader =
+                document.createElement(
+                    "section"
+                );
+
+            rallyLeader.className =
+                "rally-leader";
+
+            rallyLeader.dataset.rallyLeaderId =
+                data.id ||
+                createId("rally-leader");
+
+            rallyLeader.innerHTML = `
+                <div class="field">
+                    <label class="rally-leader-number">
+                        集結主
+                    </label>
+
+                    <input
+                        type="text"
+                        class="rally-leader-name"
+                        placeholder="集結主名"
+                        autocomplete="off"
+                    >
+                </div>
+
+                <div class="march-input-area">
+                    <div class="march-seconds-mode">
+                        <div class="field">
+                            <label>
+                                行軍時間
+                            </label>
+
+                            <input
+                                type="number"
+                                class="march-total-seconds march-seconds-input"
+                                min="0"
+                                step="1"
+                                inputmode="numeric"
+                                placeholder="秒数を入力"
+                            >
+
+                            <span class="sub-input-label">
+                                合計秒数
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="march-minutes-mode hidden">
+                        <div class="field">
+                            <label>分</label>
+
+                            <input
+                                type="number"
+                                class="march-minutes"
+                                min="0"
+                                step="1"
+                                inputmode="numeric"
+                                placeholder="0"
+                            >
+                        </div>
+
+                        <div class="field">
+                            <label>秒</label>
+
+                            <input
+                                type="number"
+                                class="march-seconds"
+                                min="0"
+                                step="1"
+                                inputmode="numeric"
+                                placeholder="0"
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <button
+                    type="button"
+                    class="danger-button remove-rally-leader-button"
+                >
+                    削除
+                </button>
+            `;
+
+            const nameInput =
+                rallyLeader.querySelector(
+                    ".rally-leader-name"
+                );
+
+            const totalInput =
+                rallyLeader.querySelector(
+                    ".march-total-seconds"
+                );
+
+            const minutesInput =
+                rallyLeader.querySelector(
+                    ".march-minutes"
+                );
+
+            const secondsInput =
+                rallyLeader.querySelector(
+                    ".march-seconds"
+                );
+
+            nameInput.value =
+                data.name ?? "";
+
+            if (
+                data.marchTotalSeconds !==
+                    undefined &&
+                data.marchTotalSeconds !== ""
+            ) {
+                totalInput.value =
+                    data.marchTotalSeconds;
+
+                syncMinuteSecondFromTotal(
+                    rallyLeader
+                );
+            } else if (
+                data.marchMinutes !==
+                    undefined ||
+                data.marchSeconds !==
+                    undefined
+            ) {
+                minutesInput.value =
+                    data.marchMinutes ?? 0;
+
+                secondsInput.value =
+                    data.marchSeconds ?? 0;
+
+                syncTotalFromMinuteSecond(
+                    rallyLeader
+                );
+            }
+
+            rallyLeaderList.appendChild(
+                rallyLeader
+            );
+
+            updateRallyLeaderNumbers(wave);
+            updateMarchInputMode(wave);
+
+            saveAllData();
+            scheduleCalculation(wave);
+        }
+
+        function addWave(data = {}) {
+            const wave =
+                document.createElement(
+                    "article"
+                );
+
+            wave.className = "wave";
+
+            wave.dataset.waveId =
+                data.id ||
+                createId("wave");
+
+            wave.innerHTML = `
+                <header class="wave-header">
+                    <h2 class="wave-title">
+                        ウェーブ
+                    </h2>
+
+                    <div class="wave-header-actions">
+                        <button
+                            type="button"
+                            class="secondary-button duplicate-wave-button"
+                        >
+                            複製
+                        </button>
+
+                        <button
+                            type="button"
+                            class="danger-button remove-wave-button"
+                        >
+                            ウェーブを削除
+                        </button>
+                    </div>
+                </header>
+
+                <div class="wave-body">
+                    <div class="wave-settings">
+                        <div class="field">
+                            <label>
+                                ウェーブ名
+                            </label>
+
+                            <input
+                                type="text"
+                                class="wave-name"
+                                placeholder="例：城門攻撃 第1波"
+                                autocomplete="off"
+                            >
+                        </div>
+
+                        <div class="field">
+                            <label>
+                                計算モード
+                            </label>
+
+                            <select class="calculation-mode">
+                                <option value="rally">
+                                    集結開始時間起点
+                                </option>
+
+                                <option value="arrival">
+                                    着弾時間起点
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label>
+                                行軍時間の入力方式
+                            </label>
+
+                            <select class="march-input-mode">
+                                <option value="seconds">
+                                    秒数で入力
+                                </option>
+
+                                <option value="minutes">
+                                    分・秒で入力
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="time-setting-area">
+                        <div class="field">
+                            <label class="reference-time-label">
+                                集結開始時間
+                            </label>
+
+                            <input
+                                type="time"
+                                class="reference-time-input"
+                                step="1"
+                            >
+                        </div>
+
+                        <div class="field relative-time-field">
+                            <label>
+                                現在時刻から設定
+                            </label>
+
+                            <div class="relative-time-controls">
+                                <button
+                                    type="button"
+                                    class="secondary-button set-relative-time-button"
+                                    data-offset-seconds="30"
+                                >
+                                    今から30秒後
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="secondary-button set-relative-time-button"
+                                    data-offset-seconds="60"
+                                >
+                                    今から1分後
+                                </button>
+
+                                <div class="custom-relative-time">
+                                    <input
+                                        type="number"
+                                        class="relative-seconds-input"
+                                        min="0"
+                                        step="1"
+                                        inputmode="numeric"
+                                        value="30"
+                                        aria-label="現在からの秒数"
+                                    >
+
+                                    <span>秒後</span>
+
+                                    <button
+                                        type="button"
+                                        class="secondary-button set-custom-relative-time-button"
+                                    >
+                                        設定
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mode-explanation"></div>
+
+                    <div class="rally-leader-toolbar">
+                        <h3>集結主</h3>
+
+                        <button
+                            type="button"
+                            class="secondary-button add-rally-leader-button"
+                        >
+                            ＋ 集結主を追加
+                        </button>
+                    </div>
+
+                    <div
+                        class="error-message rally-leader-limit-error"
+                    ></div>
+
+                    <div class="rally-leader-list"></div>
+
+                    <div class="error-message wave-error"></div>
+
+                    <div class="waiting-message">
+                        必要な項目を入力すると、ここに計算結果が表示されます。
+                    </div>
+
+                    <section class="wave-result-panel">
+                        <div class="result-panel-header">
+                            <h3>計算結果</h3>
+
+                            <button
+                                type="button"
+                                class="copy-button copy-wave-button"
+                            >
+                                ウェーブ全体をコピー
+                            </button>
+                        </div>
+
+                        <div class="copy-preview"></div>
+
+                        <div class="reference-time-display"></div>
+                    </section>
+                </div>
+            `;
+
+            wave.querySelector(
+                ".wave-name"
+            ).value =
+                data.name ?? "";
+
+            wave.querySelector(
+                ".calculation-mode"
+            ).value =
+                data.mode ?? "rally";
+
+            wave.querySelector(
+                ".march-input-mode"
+            ).value =
+                data.marchInputMode ??
+                "seconds";
+
+            wave.querySelector(
+                ".reference-time-input"
+            ).value =
+                data.referenceTime ?? "";
+
+            wave.querySelector(
+                ".relative-seconds-input"
+            ).value =
+                data.relativeSeconds ?? 30;
+
+            waveContainer.appendChild(wave);
+
+            updateWaveTitles();
+            updateModeDisplay(wave);
+
+            const rallyLeaderData =
+                Array.isArray(
+                    data.rallyLeaders
+                ) &&
+                data.rallyLeaders.length > 0
+                    ? data.rallyLeaders
+                    : Array.isArray(
+                        data.personnel
+                    ) &&
+                      data.personnel.length > 0
+                        ? data.personnel
+                        : [{}];
+
+            rallyLeaderData.forEach(
+                rallyLeaderItem => {
+                    addRallyLeader(
+                        wave,
+                        rallyLeaderItem
+                    );
+                }
+            );
+
+            updateMarchInputMode(wave);
+            saveAllData();
+            scheduleCalculation(wave);
+        }
+
+        function calculateWave(wave) {
+            const waveNameInput =
+                wave.querySelector(
+                    ".wave-name"
+                );
+
+            const calculationModeInput =
+                wave.querySelector(
+                    ".calculation-mode"
+                );
+
+            const referenceTimeInput =
+                wave.querySelector(
+                    ".reference-time-input"
+                );
+
+            const waveError =
+                wave.querySelector(
+                    ".wave-error"
+                );
+
+            const resultPanel =
+                wave.querySelector(
+                    ".wave-result-panel"
+                );
+
+            const waitingMessage =
+                wave.querySelector(
+                    ".waiting-message"
+                );
+
+            [
+                waveNameInput,
+                referenceTimeInput
+            ].forEach(clearInputError);
+
+            waveError.textContent = "";
+
+            const referenceSeconds =
+                timeToSeconds(
+                    referenceTimeInput.value
+                );
+
+            let hasError = false;
+            let hasIncompleteInput = false;
+
+            if (
+                !waveNameInput.value.trim()
+            ) {
+                hasIncompleteInput = true;
+            }
+
+            if (
+                referenceTimeInput.value === ""
+            ) {
+                hasIncompleteInput = true;
+            } else if (
+                referenceSeconds === null
+            ) {
+                setInputError(
+                    referenceTimeInput
+                );
+
+                hasError = true;
+            }
+
+            const rallyLeaderRows =
+                wave.querySelectorAll(
+                    ".rally-leader"
+                );
+
+            if (
+                rallyLeaderRows.length === 0
+            ) {
+                hasIncompleteInput = true;
+            }
+
+            const calculationData = [];
+
+            rallyLeaderRows.forEach(
+                (
+                    rallyLeader,
+                    originalIndex
+                ) => {
+                    const nameInput =
+                        rallyLeader.querySelector(
+                            ".rally-leader-name"
+                        );
+
+                    const totalInput =
+                        rallyLeader.querySelector(
+                            ".march-total-seconds"
+                        );
+
+                    clearInputError(nameInput);
+                    clearInputError(totalInput);
+
+                    const marchSeconds =
+                        parseNonNegativeInteger(
+                            totalInput.value
+                        );
+
+                    if (
+                        !nameInput.value.trim()
+                    ) {
+                        hasIncompleteInput =
+                            true;
+                    }
+
+                    if (
+                        totalInput.value === ""
+                    ) {
+                        hasIncompleteInput =
+                            true;
+                    } else if (
+                        marchSeconds === null
+                    ) {
+                        setInputError(
+                            totalInput
+                        );
+
+                        hasError = true;
+                    }
+
+                    calculationData.push({
+                        name:
+                            nameInput.value.trim(),
+
+                        marchSeconds,
+
+                        originalIndex
+                    });
+                }
+            );
+
+            if (hasError) {
+                waveError.textContent =
+                    "赤色の入力欄を確認してください。";
+
+                clearResult(wave);
+                return;
+            }
+
+            /*
+             * 入力途中ではエラーにせず、
+             * 結果を待機表示にします。
+             */
+            if (hasIncompleteInput) {
+                clearResult(wave);
+                return;
+            }
+
+            const calculationMode =
+                calculationModeInput.value;
+
+            const waveName =
+                waveNameInput.value.trim();
+
+            const longestMarchSeconds =
+                Math.max(
+                    ...calculationData.map(
+                        item =>
+                            item.marchSeconds
+                    )
+                );
+
+            let commonArrivalSeconds;
+            let firstDepartureSeconds;
+
+            if (
+                calculationMode === "rally"
+            ) {
+                /*
+                 * 集結開始時間起点
+                 *
+                 * 最長の行軍時間を持つ集結主が、
+                 * 入力された時刻に出発します。
+                 */
+                firstDepartureSeconds =
+                    referenceSeconds;
+
+                commonArrivalSeconds =
+                    firstDepartureSeconds +
+                    longestMarchSeconds;
+            } else {
+                /*
+                 * 着弾時間起点
+                 *
+                 * 入力された時刻を、
+                 * 全員共通の着弾時間にします。
+                 */
+                commonArrivalSeconds =
+                    referenceSeconds;
+
+                firstDepartureSeconds =
+                    commonArrivalSeconds -
+                    longestMarchSeconds;
+            }
+
+            /*
+             * 共通着弾時間から、
+             * 各集結主の出発時刻を逆算します。
+             */
+            const resultData =
+                calculationData.map(item => {
+                    const departureSeconds =
+                        commonArrivalSeconds -
+                        item.marchSeconds;
+
+                    return {
+                        ...item,
+
+                        departureSeconds,
+
+                        departureTime:
+                            secondsToTime(
+                                departureSeconds
+                            )
+                    };
+                });
+
+            /*
+             * 集結を早く出す順に並べます。
+             *
+             * 日付をまたぐ場合を考慮し、
+             * 最初の出発時刻からの
+             * 経過秒数で比較します。
+             */
+            resultData.sort((a, b) => {
+                const elapsedA =
+                    normalizeSeconds(
+                        a.departureSeconds -
+                        firstDepartureSeconds
+                    );
+
+                const elapsedB =
+                    normalizeSeconds(
+                        b.departureSeconds -
+                        firstDepartureSeconds
+                    );
+
+                if (
+                    elapsedA !== elapsedB
+                ) {
+                    return (
+                        elapsedA - elapsedB
+                    );
+                }
+
+                if (
+                    a.marchSeconds !==
+                    b.marchSeconds
+                ) {
+                    return (
+                        b.marchSeconds -
+                        a.marchSeconds
+                    );
+                }
+
+                return (
+                    a.originalIndex -
+                    b.originalIndex
+                );
+            });
+
+            const copyLines = [waveName];
+
+            resultData.forEach(item => {
+                copyLines.push(
+                    `${item.name}　${item.departureTime}`
+                );
+            });
+
+            const copyText =
+                copyLines.join("\n");
+
+            resultPanel.querySelector(
+                ".copy-preview"
+            ).textContent = copyText;
+
+            resultPanel.dataset.copyText =
+                copyText;
+
+            const firstDepartureTime =
+                secondsToTime(
+                    firstDepartureSeconds
+                );
+
+            const commonArrivalTime =
+                secondsToTime(
+                    commonArrivalSeconds
+                );
+
+            resultPanel.querySelector(
+                ".reference-time-display"
+            ).innerHTML = `
+                集結開始時間：
+                <strong>${firstDepartureTime}</strong>
+                <br>
+                集結着弾時間：
+                <strong>${commonArrivalTime}</strong>
+            `;
+
+            waitingMessage.hidden = true;
+
+            resultPanel.classList.add(
+                "visible"
+            );
+
+            saveAllData();
+        }
+
+        function saveAllData() {
+            const data = [];
+
+            waveContainer
+                .querySelectorAll(".wave")
+                .forEach(wave => {
+                    const rallyLeaders = [];
+
+                    wave.querySelectorAll(
+                        ".rally-leader"
+                    ).forEach(row => {
+                        rallyLeaders.push({
+                            id:
+                                row.dataset
+                                    .rallyLeaderId,
+
+                            name:
+                                row.querySelector(
+                                    ".rally-leader-name"
+                                ).value,
+
+                            marchTotalSeconds:
+                                row.querySelector(
+                                    ".march-total-seconds"
+                                ).value
+                        });
+                    });
+
+                    data.push({
+                        id:
+                            wave.dataset.waveId,
+
+                        name:
+                            wave.querySelector(
+                                ".wave-name"
+                            ).value,
+
+                        mode:
+                            wave.querySelector(
+                                ".calculation-mode"
+                            ).value,
+
+                        marchInputMode:
+                            wave.querySelector(
+                                ".march-input-mode"
+                            ).value,
+
+                        referenceTime:
+                            wave.querySelector(
+                                ".reference-time-input"
+                            ).value,
+
+                        relativeSeconds:
+                            wave.querySelector(
+                                ".relative-seconds-input"
+                            ).value,
+
+                        rallyLeaders
+                    });
+                });
+
+            localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify(data)
+            );
+        }
+
+        function loadAllData() {
+            const savedText =
+                localStorage.getItem(
+                    STORAGE_KEY
+                );
+
+            if (!savedText) {
+                addWave();
+                return;
+            }
+
+            try {
+                const savedData =
+                    JSON.parse(savedText);
+
+                if (
+                    !Array.isArray(
+                        savedData
+                    ) ||
+                    savedData.length === 0
+                ) {
+                    addWave();
+                    return;
+                }
+
+                savedData.forEach(
+                    waveData => {
+                        addWave(waveData);
+                    }
+                );
+            } catch (error) {
+                console.error(
+                    "保存データの読み込みに失敗しました。",
+                    error
+                );
+
+                addWave();
+            }
+        }
+
+        async function copyText(
+            text,
+            button
+        ) {
+            if (!text) {
+                return;
+            }
+
+            let copied = false;
+
+            try {
+                if (
+                    navigator.clipboard &&
+                    window.isSecureContext
+                ) {
+                    await navigator.clipboard
+                        .writeText(text);
+
+                    copied = true;
+                } else {
+                    const textarea =
+                        document.createElement(
+                            "textarea"
+                        );
+
+                    textarea.value = text;
+
+                    textarea.setAttribute(
+                        "readonly",
+                        ""
+                    );
+
+                    textarea.style.position =
+                        "fixed";
+
+                    textarea.style.opacity =
+                        "0";
+
+                    document.body.appendChild(
+                        textarea
+                    );
+
+                    textarea.select();
+
+                    copied =
+                        document.execCommand(
+                            "copy"
+                        );
+
+                    textarea.remove();
+                }
+            } catch (error) {
+                console.error(
+                    "コピーに失敗しました。",
+                    error
+                );
+            }
+
+            button.textContent = copied
+                ? "コピーしました"
+                : "コピーできませんでした";
+
+            button.classList.add(
+                "copied"
+            );
+
+            setTimeout(() => {
+                button.textContent =
+                    "ウェーブ全体をコピー";
+
+                button.classList.remove(
+                    "copied"
+                );
+            }, 1400);
+        }
+
+        function duplicateWave(sourceWave) {
+            const rallyLeaders = [];
+
+            sourceWave
+                .querySelectorAll(
+                    ".rally-leader"
+                )
+                .forEach(row => {
+                    rallyLeaders.push({
+                        name:
+                            row.querySelector(
+                                ".rally-leader-name"
+                            ).value,
+
+                        marchTotalSeconds:
+                            row.querySelector(
+                                ".march-total-seconds"
+                            ).value
+                    });
+                });
+
+            const sourceName =
+                sourceWave.querySelector(
+                    ".wave-name"
+                ).value;
+
+            addWave({
+                name:
+                    sourceName
+                        ? `${sourceName} コピー`
+                        : "",
+
+                mode:
+                    sourceWave.querySelector(
+                        ".calculation-mode"
+                    ).value,
+
+                marchInputMode:
+                    sourceWave.querySelector(
+                        ".march-input-mode"
+                    ).value,
+
+                referenceTime:
+                    sourceWave.querySelector(
+                        ".reference-time-input"
+                    ).value,
+
+                relativeSeconds:
+                    sourceWave.querySelector(
+                        ".relative-seconds-input"
+                    ).value,
+
+                rallyLeaders
+            });
+        }
+
+        waveContainer.addEventListener(
+            "click",
+            event => {
+                const target =
+                    event.target;
+
+                const wave =
+                    target.closest(".wave");
+
+                if (!wave) {
+                    return;
+                }
+
+                if (
+                    target.classList.contains(
+                        "add-rally-leader-button"
+                    )
+                ) {
+                    addRallyLeader(wave);
+                    return;
+                }
+
+                if (
+                    target.classList.contains(
+                        "remove-rally-leader-button"
+                    )
+                ) {
+                    target.closest(
+                        ".rally-leader"
+                    ).remove();
+
+                    updateRallyLeaderNumbers(
+                        wave
+                    );
+
+                    wave.querySelector(
+                        ".rally-leader-limit-error"
+                    ).textContent = "";
+
+                    wave.querySelector(
+                        ".rally-leader-list"
+                    ).classList.remove(
+                        "list-error"
+                    );
+
+                    saveAllData();
+                    scheduleCalculation(wave);
+                    return;
+                }
+
+                if (
+                    target.classList.contains(
+                        "copy-wave-button"
+                    )
+                ) {
+                    const panel =
+                        target.closest(
+                            ".wave-result-panel"
+                        );
+
+                    copyText(
+                        panel.dataset.copyText,
+                        target
+                    );
+
+                    return;
+                }
+
+                if (
+                    target.classList.contains(
+                        "duplicate-wave-button"
+                    )
+                ) {
+                    duplicateWave(wave);
+                    return;
+                }
+
+                if (
+                    target.classList.contains(
+                        "set-relative-time-button"
+                    )
+                ) {
+                    const offsetSeconds =
+                        Number(
+                            target.dataset
+                                .offsetSeconds
+                        );
+
+                    setTimeFromNow(
+                        wave,
+                        offsetSeconds
+                    );
+
+                    return;
+                }
+
+                if (
+                    target.classList.contains(
+                        "set-custom-relative-time-button"
+                    )
+                ) {
+                    const input =
+                        wave.querySelector(
+                            ".relative-seconds-input"
+                        );
+
+                    const offsetSeconds =
+                        parseNonNegativeInteger(
+                            input.value
+                        );
+
+                    if (
+                        offsetSeconds === null
+                    ) {
+                        setInputError(input);
+                        return;
+                    }
+
+                    clearInputError(input);
+
+                    setTimeFromNow(
+                        wave,
+                        offsetSeconds
+                    );
+
+                    return;
+                }
+
+                if (
+                    target.classList.contains(
+                        "remove-wave-button"
+                    )
+                ) {
+                    wave.remove();
+
+                    updateWaveTitles();
+
+                    if (
+                        waveContainer
+                            .querySelectorAll(
+                                ".wave"
+                            ).length === 0
+                    ) {
+                        addWave();
+                    }
+
+                    saveAllData();
+                }
+            }
+        );
+
+        waveContainer.addEventListener(
+            "input",
+            event => {
+                const target =
+                    event.target;
+
+                const wave =
+                    target.closest(".wave");
+
+                if (!wave) {
+                    return;
+                }
+
+                clearInputError(target);
+
+                const rallyLeader =
+                    target.closest(
+                        ".rally-leader"
+                    );
+
+                if (
+                    target.classList.contains(
+                        "wave-name"
+                    )
+                ) {
+                    updateWaveTitles();
+                }
+
+                if (
+                    rallyLeader &&
+                    target.classList.contains(
+                        "march-total-seconds"
+                    )
+                ) {
+                    syncMinuteSecondFromTotal(
+                        rallyLeader
+                    );
+                }
+
+                if (
+                    rallyLeader &&
+                    (
+                        target.classList.contains(
+                            "march-minutes"
+                        ) ||
+                        target.classList.contains(
+                            "march-seconds"
+                        )
+                    )
+                ) {
+                    syncTotalFromMinuteSecond(
+                        rallyLeader,
+                        false
+                    );
+                }
+
+                saveAllData();
+                scheduleCalculation(wave);
+            }
+        );
+
+        waveContainer.addEventListener(
+            "change",
+            event => {
+                const target =
+                    event.target;
+
+                const wave =
+                    target.closest(".wave");
+
+                if (!wave) {
+                    return;
+                }
+
+                clearInputError(target);
+
+                const rallyLeader =
+                    target.closest(
+                        ".rally-leader"
+                    );
+
+                if (
+                    rallyLeader &&
+                    (
+                        target.classList.contains(
+                            "march-minutes"
+                        ) ||
+                        target.classList.contains(
+                            "march-seconds"
+                        )
+                    )
+                ) {
+                    syncTotalFromMinuteSecond(
+                        rallyLeader,
+                        true
+                    );
+                }
+
+                if (
+                    target.classList.contains(
+                        "calculation-mode"
+                    )
+                ) {
+                    updateModeDisplay(wave);
+                }
+
+                if (
+                    target.classList.contains(
+                        "march-input-mode"
+                    )
+                ) {
+                    updateMarchInputMode(wave);
+                }
+
+                saveAllData();
+                scheduleCalculation(wave);
+            }
+        );
+
+        addWaveButton.addEventListener(
+            "click",
+            () => addWave()
+        );
+
+        loadAllData();
+    </script>
+</body>
+</html>
