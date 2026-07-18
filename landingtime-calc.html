@@ -111,6 +111,10 @@
             background: #fff0f0;
         }
 
+        .hidden {
+            display: none !important;
+        }
+
         #enemyRallyContainer {
             display: flex;
             flex-direction: column;
@@ -205,14 +209,10 @@
             font-size: 12px;
         }
 
-        .hidden {
-            display: none !important;
-        }
-
         .time-section {
             display: grid;
             grid-template-columns:
-                minmax(240px, 1fr)
+                minmax(280px, 1fr)
                 minmax(240px, 1fr);
             gap: 14px;
             margin-top: 20px;
@@ -277,6 +277,62 @@
             margin-top: 7px;
             color: #dbeafe;
             font-size: 13px;
+            font-weight: 700;
+        }
+
+        .time-edit-area {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid #d8dee8;
+        }
+
+        .time-edit-title {
+            margin: 0 0 9px;
+            color: #475467;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .time-adjust-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .time-adjust-buttons button {
+            padding: 7px 10px;
+            font-size: 13px;
+        }
+
+        .manual-time-edit {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .manual-time-inputs {
+            display: grid;
+            grid-template-columns:
+                minmax(48px, 1fr)
+                auto
+                minmax(48px, 1fr)
+                auto
+                minmax(48px, 1fr);
+            align-items: center;
+            gap: 5px;
+            flex: 1;
+        }
+
+        .manual-time-inputs input {
+            min-width: 0;
+            min-height: 38px;
+            padding: 6px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .manual-time-inputs span {
             font-weight: 700;
         }
 
@@ -353,6 +409,21 @@
             .time-buttons button {
                 width: 100%;
             }
+
+            .time-adjust-buttons {
+                display: grid;
+                grid-template-columns:
+                    repeat(3, 1fr);
+            }
+
+            .manual-time-edit {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .manual-time-edit button {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -382,7 +453,7 @@
         "use strict";
 
         const STORAGE_KEY =
-            "enemyRallyPredictionToolDataV1";
+            "enemyRallyPredictionToolDataV2";
 
         const SECONDS_PER_DAY =
             24 * 60 * 60;
@@ -479,6 +550,12 @@
             );
         }
 
+        function getCurrentUnixSeconds() {
+            return Math.floor(
+                Date.now() / 1000
+            );
+        }
+
         function clearInputError(input) {
             input.classList.remove(
                 "input-error"
@@ -488,12 +565,6 @@
         function setInputError(input) {
             input.classList.add(
                 "input-error"
-            );
-        }
-
-        function getCurrentUnixSeconds() {
-            return Math.floor(
-                Date.now() / 1000
             );
         }
 
@@ -687,6 +758,49 @@
             return getCurrentUnixSeconds();
         }
 
+        function updateTimeEditInputs(rally) {
+            const fixedUnixSeconds =
+                Number(
+                    rally.dataset
+                        .fixedUnixSeconds
+                );
+
+            if (
+                !Number.isFinite(
+                    fixedUnixSeconds
+                )
+            ) {
+                return;
+            }
+
+            const fixedDate =
+                new Date(
+                    fixedUnixSeconds *
+                    1000
+                );
+
+            rally.querySelector(
+                ".edit-start-hours"
+            ).value =
+                String(
+                    fixedDate.getHours()
+                ).padStart(2, "0");
+
+            rally.querySelector(
+                ".edit-start-minutes"
+            ).value =
+                String(
+                    fixedDate.getMinutes()
+                ).padStart(2, "0");
+
+            rally.querySelector(
+                ".edit-start-seconds"
+            ).value =
+                String(
+                    fixedDate.getSeconds()
+                ).padStart(2, "0");
+        }
+
         function updateRallyDisplay(rally) {
             const startUnixSeconds =
                 getRallyStartUnixSeconds(
@@ -695,7 +809,8 @@
 
             const startDate =
                 new Date(
-                    startUnixSeconds * 1000
+                    startUnixSeconds *
+                    1000
                 );
 
             const startTime =
@@ -727,6 +842,11 @@
                     ".release-rally-button"
                 );
 
+            const timeEditArea =
+                rally.querySelector(
+                    ".time-edit-area"
+                );
+
             if (isFixed) {
                 rally.classList.add(
                     "fixed"
@@ -741,6 +861,14 @@
 
                 fixButton.disabled = true;
                 releaseButton.disabled = false;
+
+                timeEditArea.classList.remove(
+                    "hidden"
+                );
+
+                updateTimeEditInputs(
+                    rally
+                );
             } else {
                 rally.classList.remove(
                     "fixed"
@@ -755,6 +883,10 @@
 
                 fixButton.disabled = false;
                 releaseButton.disabled = true;
+
+                timeEditArea.classList.add(
+                    "hidden"
+                );
             }
 
             updatePrediction(rally);
@@ -846,7 +978,8 @@
 
             const arrivalDate =
                 new Date(
-                    arrivalUnixSeconds * 1000
+                    arrivalUnixSeconds *
+                    1000
                 );
 
             arrivalDisplay.textContent =
@@ -858,7 +991,8 @@
 
             const startDate =
                 new Date(
-                    startUnixSeconds * 1000
+                    startUnixSeconds *
+                    1000
                 );
 
             const startDay =
@@ -897,6 +1031,13 @@
             ) {
                 arrivalDayLabel.textContent =
                     `${dayDifference}日後`;
+            } else if (
+                dayDifference < 0
+            ) {
+                arrivalDayLabel.textContent =
+                    `${Math.abs(
+                        dayDifference
+                    )}日前`;
             } else {
                 arrivalDayLabel.textContent =
                     "";
@@ -910,15 +1051,12 @@
         }
 
         function fixRallyTime(rally) {
-            const fixedUnixSeconds =
-                getCurrentUnixSeconds();
-
             rally.dataset.isFixed =
                 "true";
 
             rally.dataset.fixedUnixSeconds =
                 String(
-                    fixedUnixSeconds
+                    getCurrentUnixSeconds()
                 );
 
             updateRallyDisplay(rally);
@@ -931,6 +1069,154 @@
 
             delete rally.dataset
                 .fixedUnixSeconds;
+
+            updateRallyDisplay(rally);
+            saveAllData();
+        }
+
+        function adjustFixedRallyTime(
+            rally,
+            offsetSeconds
+        ) {
+            if (
+                rally.dataset.isFixed !==
+                "true"
+            ) {
+                return;
+            }
+
+            const currentFixedTime =
+                Number(
+                    rally.dataset
+                        .fixedUnixSeconds
+                );
+
+            if (
+                !Number.isFinite(
+                    currentFixedTime
+                )
+            ) {
+                return;
+            }
+
+            rally.dataset.fixedUnixSeconds =
+                String(
+                    currentFixedTime +
+                    offsetSeconds
+                );
+
+            updateRallyDisplay(rally);
+            saveAllData();
+        }
+
+        function applyManualFixedTime(rally) {
+            if (
+                rally.dataset.isFixed !==
+                "true"
+            ) {
+                return;
+            }
+
+            const hoursInput =
+                rally.querySelector(
+                    ".edit-start-hours"
+                );
+
+            const minutesInput =
+                rally.querySelector(
+                    ".edit-start-minutes"
+                );
+
+            const secondsInput =
+                rally.querySelector(
+                    ".edit-start-seconds"
+                );
+
+            [
+                hoursInput,
+                minutesInput,
+                secondsInput
+            ].forEach(clearInputError);
+
+            const hours =
+                parseNonNegativeInteger(
+                    hoursInput.value
+                );
+
+            const minutes =
+                parseNonNegativeInteger(
+                    minutesInput.value
+                );
+
+            const seconds =
+                parseNonNegativeInteger(
+                    secondsInput.value
+                );
+
+            let hasError = false;
+
+            if (
+                hours === null ||
+                hours > 23
+            ) {
+                setInputError(hoursInput);
+                hasError = true;
+            }
+
+            if (
+                minutes === null ||
+                minutes > 59
+            ) {
+                setInputError(minutesInput);
+                hasError = true;
+            }
+
+            if (
+                seconds === null ||
+                seconds > 59
+            ) {
+                setInputError(secondsInput);
+                hasError = true;
+            }
+
+            if (hasError) {
+                return;
+            }
+
+            const currentFixedTime =
+                Number(
+                    rally.dataset
+                        .fixedUnixSeconds
+                );
+
+            if (
+                !Number.isFinite(
+                    currentFixedTime
+                )
+            ) {
+                return;
+            }
+
+            const fixedDate =
+                new Date(
+                    currentFixedTime *
+                    1000
+                );
+
+            fixedDate.setHours(
+                hours,
+                minutes,
+                seconds,
+                0
+            );
+
+            rally.dataset.fixedUnixSeconds =
+                String(
+                    Math.floor(
+                        fixedDate.getTime() /
+                        1000
+                    )
+                );
 
             updateRallyDisplay(rally);
             saveAllData();
@@ -1120,6 +1406,102 @@
                                     解除
                                 </button>
                             </div>
+
+                            <div class="time-edit-area hidden">
+                                <p class="time-edit-title">
+                                    集結開始時刻を修正
+                                </p>
+
+                                <div class="time-adjust-buttons">
+                                    <button
+                                        type="button"
+                                        class="secondary-button adjust-time-button"
+                                        data-offset-seconds="-10"
+                                    >
+                                        −10秒
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="secondary-button adjust-time-button"
+                                        data-offset-seconds="-5"
+                                    >
+                                        −5秒
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="secondary-button adjust-time-button"
+                                        data-offset-seconds="-1"
+                                    >
+                                        −1秒
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="secondary-button adjust-time-button"
+                                        data-offset-seconds="1"
+                                    >
+                                        ＋1秒
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="secondary-button adjust-time-button"
+                                        data-offset-seconds="5"
+                                    >
+                                        ＋5秒
+                                    </button>
+                                </div>
+
+                                <div class="manual-time-edit">
+                                    <div class="manual-time-inputs">
+                                        <input
+                                            type="number"
+                                            class="edit-start-hours"
+                                            min="0"
+                                            max="23"
+                                            step="1"
+                                            inputmode="numeric"
+                                            placeholder="時"
+                                            aria-label="集結開始時刻の時"
+                                        >
+
+                                        <span>:</span>
+
+                                        <input
+                                            type="number"
+                                            class="edit-start-minutes"
+                                            min="0"
+                                            max="59"
+                                            step="1"
+                                            inputmode="numeric"
+                                            placeholder="分"
+                                            aria-label="集結開始時刻の分"
+                                        >
+
+                                        <span>:</span>
+
+                                        <input
+                                            type="number"
+                                            class="edit-start-seconds"
+                                            min="0"
+                                            max="59"
+                                            step="1"
+                                            inputmode="numeric"
+                                            placeholder="秒"
+                                            aria-label="集結開始時刻の秒"
+                                        >
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        class="secondary-button apply-manual-time-button"
+                                    >
+                                        時刻を反映
+                                    </button>
+                                </div>
+                            </div>
                         </section>
 
                         <section class="time-card arrival-card">
@@ -1221,14 +1603,15 @@
         function duplicateEnemyRally(
             sourceRally
         ) {
+            const sourceName =
+                sourceRally.querySelector(
+                    ".enemy-leader-name"
+                ).value;
+
             addEnemyRally({
                 leaderName:
-                    sourceRally.querySelector(
-                        ".enemy-leader-name"
-                    ).value
-                        ? `${sourceRally.querySelector(
-                            ".enemy-leader-name"
-                        ).value} コピー`
+                    sourceName
+                        ? `${sourceName} コピー`
                         : "",
 
                 rallyDuration:
@@ -1381,6 +1764,37 @@
 
                     if (
                         target.classList.contains(
+                            "adjust-time-button"
+                        )
+                    ) {
+                        const offsetSeconds =
+                            Number(
+                                target.dataset
+                                    .offsetSeconds
+                            );
+
+                        adjustFixedRallyTime(
+                            rally,
+                            offsetSeconds
+                        );
+
+                        return;
+                    }
+
+                    if (
+                        target.classList.contains(
+                            "apply-manual-time-button"
+                        )
+                    ) {
+                        applyManualFixedTime(
+                            rally
+                        );
+
+                        return;
+                    }
+
+                    if (
+                        target.classList.contains(
                             "duplicate-rally-button"
                         )
                     ) {
@@ -1523,8 +1937,8 @@
             );
 
         /*
-         * 未固定の集結開始時刻と
-         * 予想着弾時刻を毎秒更新します。
+         * 固定されていない集結だけ、
+         * 現在時刻に合わせて更新します。
          */
         setInterval(() => {
             enemyRallyContainer
