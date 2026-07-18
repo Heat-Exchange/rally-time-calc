@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>敵集結着弾予測ツール</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            color: #222;
+            background: #f3f5f8;
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                "Hiragino Kaku Gothic ProN",
+                "Yu Gothic",
+                Meiryo,
+                sans-serif;
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+        }
+
+        button {
+            padding: 10px 16px;
+            border: 0;
+            border-radius: 7px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        input,
+        select {
+            width: 100%;
+            min-height: 44px;
+            padding: 8px 10px;
+            color: #222;
+            background: #fff;
+            border: 1px solid #b9c1ce;
+            border-radius: 7px;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #1769e0;
+            outline:
+                3px solid rgba(23, 105, 224, 0.15);
+        }
+
+        .page-container {
+            width: min(1050px, 100%);
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+        }
+
+        .page-description {
+            margin: 0 0 22px;
+            color: #667085;
+            line-height: 1.6;
+        }
+
+        .top-actions {
+            margin-bottom: 20px;
+        }
+
+        .primary-button {
+            color: #fff;
+            background: #1769e0;
+        }
+
+        .secondary-button {
+            color: #222;
+            background: #e8edf5;
+        }
+
+        .rally-button {
+            color: #fff;
+            background: #c2410c;
+        }
+
+        .release-button {
+            color: #fff;
+            background: #475467;
+        }
+
+        .danger-button {
+            color: #b42318;
+            background: #fff0f0;
+        }
+
+        #enemyRallyContainer {
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        .enemy-rally {
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid #d9dee8;
+            border-radius: 12px;
+            box-shadow:
+                0 3px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        .enemy-rally.fixed {
+            border-color: #e09a74;
+        }
+
+        .enemy-rally-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px 20px;
+            background: #edf3ff;
+            border-bottom: 1px solid #d9dee8;
+        }
+
+        .enemy-rally.fixed .enemy-rally-header {
+            background: #fff1e9;
+        }
+
+        .enemy-rally-title {
+            min-width: 0;
+            margin: 0;
+            overflow-wrap: anywhere;
+            font-size: 20px;
+        }
+
+        .enemy-rally-header-actions {
+            display: flex;
+            flex-shrink: 0;
+            gap: 8px;
+        }
+
+        .enemy-rally-body {
+            padding: 20px;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns:
+                minmax(180px, 1.2fr)
+                minmax(180px, 0.9fr)
+                minmax(160px, 0.7fr);
+            gap: 14px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field label {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .march-time-area {
+            margin-top: 14px;
+        }
+
+        .march-seconds-mode {
+            max-width: 420px;
+        }
+
+        .march-minutes-mode {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            max-width: 420px;
+        }
+
+        .march-total-seconds {
+            font-weight: 700;
+        }
+
+        .sub-label {
+            color: #667085;
+            font-size: 12px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .time-section {
+            display: grid;
+            grid-template-columns:
+                minmax(240px, 1fr)
+                minmax(240px, 1fr);
+            gap: 14px;
+            margin-top: 20px;
+        }
+
+        .time-card {
+            padding: 16px;
+            background: #f8fafc;
+            border: 1px solid #dfe4ec;
+            border-radius: 9px;
+        }
+
+        .time-card-title {
+            margin: 0 0 10px;
+            color: #475467;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .time-display {
+            font-variant-numeric: tabular-nums;
+            font-size: clamp(28px, 5vw, 42px);
+            font-weight: 800;
+            letter-spacing: 0.05em;
+        }
+
+        .time-status {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 9px;
+            color: #175cd3;
+            background: #eaf2ff;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .time-status.fixed-status {
+            color: #b54708;
+            background: #ffead5;
+        }
+
+        .time-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .arrival-card {
+            color: #fff;
+            background: #175cd3;
+            border-color: #175cd3;
+        }
+
+        .arrival-card .time-card-title {
+            color: #dbeafe;
+        }
+
+        .arrival-day-label {
+            min-height: 20px;
+            margin-top: 7px;
+            color: #dbeafe;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .calculation-detail {
+            margin-top: 14px;
+            padding: 11px 12px;
+            color: #475467;
+            background: #f8fafc;
+            border-radius: 7px;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .error-message {
+            min-height: 20px;
+            margin-top: 8px;
+            color: #c62828;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .input-error {
+            background: #fff1f1;
+            border-color: #d93025;
+        }
+
+        @media (max-width: 760px) {
+            .settings-grid,
+            .time-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 620px) {
+            body {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .enemy-rally-header {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .enemy-rally-header-actions {
+                width: 100%;
+            }
+
+            .enemy-rally-header-actions button {
+                flex: 1;
+            }
+
+            .enemy-rally-body {
+                padding: 14px;
+            }
+
+            .march-minutes-mode {
+                grid-template-columns: 1fr 1fr;
+                max-width: none;
+            }
+
+            .march-seconds-mode {
+                max-width: none;
+            }
+
+            .time-buttons {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .time-buttons button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="page-container">
+        <h1>敵集結着弾予測ツール</h1>
+
+        <p class="page-description">
+            「集結」を押した時刻に、集結時間と敵の行軍時間を加えて着弾時刻を予測します。
+        </p>
+
+        <div class="top-actions">
+            <button
+                type="button"
+                id="addEnemyRallyButton"
+                class="primary-button"
+            >
+                ＋ 敵集結を追加
+            </button>
+        </div>
+
+        <div id="enemyRallyContainer"></div>
+    </main>
+
+    <script>
+        "use strict";
+
+        const STORAGE_KEY =
+            "enemyRallyPredictionToolDataV1";
+
+        const SECONDS_PER_DAY =
+            24 * 60 * 60;
+
+        const enemyRallyContainer =
+            document.getElementById(
+                "enemyRallyContainer"
+            );
+
+        const addEnemyRallyButton =
+            document.getElementById(
+                "addEnemyRallyButton"
+            );
+
+        function createId(prefix) {
+            if (
+                window.crypto &&
+                typeof window.crypto.randomUUID ===
+                    "function"
+            ) {
+                return (
+                    `${prefix}-` +
+                    window.crypto.randomUUID()
+                );
+            }
+
+            return (
+                `${prefix}-${Date.now()}-` +
+                Math.random()
+                    .toString(16)
+                    .slice(2)
+            );
+        }
+
+        function parseNonNegativeInteger(value) {
+            if (value === "") {
+                return null;
+            }
+
+            const number =
+                Number(value);
+
+            if (
+                !Number.isInteger(number) ||
+                number < 0
+            ) {
+                return null;
+            }
+
+            return number;
+        }
+
+        function normalizeSeconds(totalSeconds) {
+            return (
+                (
+                    totalSeconds %
+                    SECONDS_PER_DAY
+                ) +
+                SECONDS_PER_DAY
+            ) % SECONDS_PER_DAY;
+        }
+
+        function secondsToTime(totalSeconds) {
+            let normalized =
+                normalizeSeconds(totalSeconds);
+
+            const hours =
+                Math.floor(
+                    normalized / 3600
+                );
+
+            normalized %= 3600;
+
+            const minutes =
+                Math.floor(
+                    normalized / 60
+                );
+
+            const seconds =
+                normalized % 60;
+
+            return [
+                String(hours).padStart(2, "0"),
+                String(minutes).padStart(2, "0"),
+                String(seconds).padStart(2, "0")
+            ].join(":");
+        }
+
+        function dateToSeconds(date) {
+            return (
+                date.getHours() * 3600 +
+                date.getMinutes() * 60 +
+                date.getSeconds()
+            );
+        }
+
+        function clearInputError(input) {
+            input.classList.remove(
+                "input-error"
+            );
+        }
+
+        function setInputError(input) {
+            input.classList.add(
+                "input-error"
+            );
+        }
+
+        function getCurrentUnixSeconds() {
+            return Math.floor(
+                Date.now() / 1000
+            );
+        }
+
+        function updateRallyTitles() {
+            enemyRallyContainer
+                .querySelectorAll(
+                    ".enemy-rally"
+                )
+                .forEach(
+                    (rally, index) => {
+                        const leaderName =
+                            rally.querySelector(
+                                ".enemy-leader-name"
+                            ).value.trim();
+
+                        rally.querySelector(
+                            ".enemy-rally-title"
+                        ).textContent =
+                            leaderName ||
+                            `敵集結 ${index + 1}`;
+                    }
+                );
+        }
+
+        function syncMinuteSecondFromTotal(
+            rally
+        ) {
+            const totalInput =
+                rally.querySelector(
+                    ".march-total-seconds"
+                );
+
+            const minutesInput =
+                rally.querySelector(
+                    ".march-minutes"
+                );
+
+            const secondsInput =
+                rally.querySelector(
+                    ".march-seconds"
+                );
+
+            const totalSeconds =
+                parseNonNegativeInteger(
+                    totalInput.value
+                );
+
+            if (
+                totalSeconds === null
+            ) {
+                minutesInput.value = "";
+                secondsInput.value = "";
+                return;
+            }
+
+            minutesInput.value =
+                Math.floor(
+                    totalSeconds / 60
+                );
+
+            secondsInput.value =
+                totalSeconds % 60;
+        }
+
+        function syncTotalFromMinuteSecond(
+            rally,
+            normalizeDisplay = false
+        ) {
+            const totalInput =
+                rally.querySelector(
+                    ".march-total-seconds"
+                );
+
+            const minutesInput =
+                rally.querySelector(
+                    ".march-minutes"
+                );
+
+            const secondsInput =
+                rally.querySelector(
+                    ".march-seconds"
+                );
+
+            const minutes =
+                parseNonNegativeInteger(
+                    minutesInput.value
+                );
+
+            const seconds =
+                parseNonNegativeInteger(
+                    secondsInput.value
+                );
+
+            if (
+                minutes === null ||
+                seconds === null
+            ) {
+                totalInput.value = "";
+                return;
+            }
+
+            const totalSeconds =
+                minutes * 60 + seconds;
+
+            totalInput.value =
+                totalSeconds;
+
+            if (normalizeDisplay) {
+                minutesInput.value =
+                    Math.floor(
+                        totalSeconds / 60
+                    );
+
+                secondsInput.value =
+                    totalSeconds % 60;
+            }
+        }
+
+        function updateMarchInputMode(rally) {
+            const mode =
+                rally.querySelector(
+                    ".march-input-mode"
+                ).value;
+
+            const secondsMode =
+                rally.querySelector(
+                    ".march-seconds-mode"
+                );
+
+            const minutesMode =
+                rally.querySelector(
+                    ".march-minutes-mode"
+                );
+
+            if (mode === "seconds") {
+                if (
+                    rally.querySelector(
+                        ".march-total-seconds"
+                    ).value === ""
+                ) {
+                    syncTotalFromMinuteSecond(
+                        rally
+                    );
+                }
+
+                secondsMode.classList.remove(
+                    "hidden"
+                );
+
+                minutesMode.classList.add(
+                    "hidden"
+                );
+            } else {
+                syncMinuteSecondFromTotal(
+                    rally
+                );
+
+                secondsMode.classList.add(
+                    "hidden"
+                );
+
+                minutesMode.classList.remove(
+                    "hidden"
+                );
+            }
+        }
+
+        function getRallyStartUnixSeconds(
+            rally
+        ) {
+            const isFixed =
+                rally.dataset.isFixed ===
+                "true";
+
+            if (isFixed) {
+                const fixedUnixSeconds =
+                    Number(
+                        rally.dataset
+                            .fixedUnixSeconds
+                    );
+
+                if (
+                    Number.isFinite(
+                        fixedUnixSeconds
+                    )
+                ) {
+                    return fixedUnixSeconds;
+                }
+            }
+
+            return getCurrentUnixSeconds();
+        }
+
+        function updateRallyDisplay(rally) {
+            const startUnixSeconds =
+                getRallyStartUnixSeconds(
+                    rally
+                );
+
+            const startDate =
+                new Date(
+                    startUnixSeconds * 1000
+                );
+
+            const startTime =
+                secondsToTime(
+                    dateToSeconds(startDate)
+                );
+
+            rally.querySelector(
+                ".start-time-display"
+            ).textContent =
+                startTime;
+
+            const isFixed =
+                rally.dataset.isFixed ===
+                "true";
+
+            const status =
+                rally.querySelector(
+                    ".time-status"
+                );
+
+            const fixButton =
+                rally.querySelector(
+                    ".fix-rally-button"
+                );
+
+            const releaseButton =
+                rally.querySelector(
+                    ".release-rally-button"
+                );
+
+            if (isFixed) {
+                rally.classList.add(
+                    "fixed"
+                );
+
+                status.textContent =
+                    "固定中";
+
+                status.classList.add(
+                    "fixed-status"
+                );
+
+                fixButton.disabled = true;
+                releaseButton.disabled = false;
+            } else {
+                rally.classList.remove(
+                    "fixed"
+                );
+
+                status.textContent =
+                    "現在時刻に追従中";
+
+                status.classList.remove(
+                    "fixed-status"
+                );
+
+                fixButton.disabled = false;
+                releaseButton.disabled = true;
+            }
+
+            updatePrediction(rally);
+        }
+
+        function updatePrediction(rally) {
+            const marchInput =
+                rally.querySelector(
+                    ".march-total-seconds"
+                );
+
+            clearInputError(marchInput);
+
+            const marchSeconds =
+                parseNonNegativeInteger(
+                    marchInput.value
+                );
+
+            const rallyDuration =
+                Number(
+                    rally.querySelector(
+                        ".rally-duration"
+                    ).value
+                );
+
+            const arrivalDisplay =
+                rally.querySelector(
+                    ".arrival-time-display"
+                );
+
+            const arrivalDayLabel =
+                rally.querySelector(
+                    ".arrival-day-label"
+                );
+
+            const calculationDetail =
+                rally.querySelector(
+                    ".calculation-detail"
+                );
+
+            const errorMessage =
+                rally.querySelector(
+                    ".error-message"
+                );
+
+            errorMessage.textContent = "";
+
+            if (
+                marchInput.value === ""
+            ) {
+                arrivalDisplay.textContent =
+                    "--:--:--";
+
+                arrivalDayLabel.textContent =
+                    "";
+
+                calculationDetail.textContent =
+                    "行軍時間を入力すると、予想着弾時刻が表示されます。";
+
+                return;
+            }
+
+            if (
+                marchSeconds === null
+            ) {
+                setInputError(marchInput);
+
+                errorMessage.textContent =
+                    "行軍時間は0以上の整数で入力してください。";
+
+                arrivalDisplay.textContent =
+                    "--:--:--";
+
+                arrivalDayLabel.textContent =
+                    "";
+
+                return;
+            }
+
+            const startUnixSeconds =
+                getRallyStartUnixSeconds(
+                    rally
+                );
+
+            const arrivalUnixSeconds =
+                startUnixSeconds +
+                rallyDuration +
+                marchSeconds;
+
+            const arrivalDate =
+                new Date(
+                    arrivalUnixSeconds * 1000
+                );
+
+            arrivalDisplay.textContent =
+                secondsToTime(
+                    dateToSeconds(
+                        arrivalDate
+                    )
+                );
+
+            const startDate =
+                new Date(
+                    startUnixSeconds * 1000
+                );
+
+            const startDay =
+                new Date(
+                    startDate.getFullYear(),
+                    startDate.getMonth(),
+                    startDate.getDate()
+                );
+
+            const arrivalDay =
+                new Date(
+                    arrivalDate.getFullYear(),
+                    arrivalDate.getMonth(),
+                    arrivalDate.getDate()
+                );
+
+            const dayDifference =
+                Math.round(
+                    (
+                        arrivalDay -
+                        startDay
+                    ) /
+                    (
+                        24 *
+                        60 *
+                        60 *
+                        1000
+                    )
+                );
+
+            if (dayDifference === 1) {
+                arrivalDayLabel.textContent =
+                    "翌日";
+            } else if (
+                dayDifference > 1
+            ) {
+                arrivalDayLabel.textContent =
+                    `${dayDifference}日後`;
+            } else {
+                arrivalDayLabel.textContent =
+                    "";
+            }
+
+            const rallyMinutes =
+                rallyDuration / 60;
+
+            calculationDetail.textContent =
+                `集結開始時刻 ＋ 集結時間${rallyMinutes}分 ＋ 行軍時間${marchSeconds}秒`;
+        }
+
+        function fixRallyTime(rally) {
+            const fixedUnixSeconds =
+                getCurrentUnixSeconds();
+
+            rally.dataset.isFixed =
+                "true";
+
+            rally.dataset.fixedUnixSeconds =
+                String(
+                    fixedUnixSeconds
+                );
+
+            updateRallyDisplay(rally);
+            saveAllData();
+        }
+
+        function releaseRallyTime(rally) {
+            rally.dataset.isFixed =
+                "false";
+
+            delete rally.dataset
+                .fixedUnixSeconds;
+
+            updateRallyDisplay(rally);
+            saveAllData();
+        }
+
+        function addEnemyRally(
+            data = {}
+        ) {
+            const rally =
+                document.createElement(
+                    "article"
+                );
+
+            rally.className =
+                "enemy-rally";
+
+            rally.dataset.rallyId =
+                data.id ||
+                createId("enemy-rally");
+
+            rally.dataset.isFixed =
+                data.isFixed
+                    ? "true"
+                    : "false";
+
+            if (
+                data.fixedUnixSeconds !==
+                    undefined &&
+                data.fixedUnixSeconds !==
+                    null
+            ) {
+                rally.dataset.fixedUnixSeconds =
+                    String(
+                        data.fixedUnixSeconds
+                    );
+            }
+
+            rally.innerHTML = `
+                <header class="enemy-rally-header">
+                    <h2 class="enemy-rally-title">
+                        敵集結
+                    </h2>
+
+                    <div class="enemy-rally-header-actions">
+                        <button
+                            type="button"
+                            class="secondary-button duplicate-rally-button"
+                        >
+                            複製
+                        </button>
+
+                        <button
+                            type="button"
+                            class="danger-button remove-rally-button"
+                        >
+                            削除
+                        </button>
+                    </div>
+                </header>
+
+                <div class="enemy-rally-body">
+                    <div class="settings-grid">
+                        <div class="field">
+                            <label>
+                                敵の集結主
+                            </label>
+
+                            <input
+                                type="text"
+                                class="enemy-leader-name"
+                                placeholder="集結主名"
+                                autocomplete="off"
+                            >
+                        </div>
+
+                        <div class="field">
+                            <label>
+                                集結時間
+                            </label>
+
+                            <select class="rally-duration">
+                                <option value="300">
+                                    5分
+                                </option>
+
+                                <option value="600">
+                                    10分
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="field">
+                            <label>
+                                行軍時間の入力方式
+                            </label>
+
+                            <select class="march-input-mode">
+                                <option value="seconds">
+                                    秒数で入力
+                                </option>
+
+                                <option value="minutes">
+                                    分・秒で入力
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="march-time-area">
+                        <div class="march-seconds-mode">
+                            <div class="field">
+                                <label>
+                                    敵の行軍時間
+                                </label>
+
+                                <input
+                                    type="number"
+                                    class="march-total-seconds"
+                                    min="0"
+                                    step="1"
+                                    inputmode="numeric"
+                                    placeholder="秒数を入力"
+                                >
+
+                                <span class="sub-label">
+                                    合計秒数
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="march-minutes-mode hidden">
+                            <div class="field">
+                                <label>分</label>
+
+                                <input
+                                    type="number"
+                                    class="march-minutes"
+                                    min="0"
+                                    step="1"
+                                    inputmode="numeric"
+                                    placeholder="0"
+                                >
+                            </div>
+
+                            <div class="field">
+                                <label>秒</label>
+
+                                <input
+                                    type="number"
+                                    class="march-seconds"
+                                    min="0"
+                                    step="1"
+                                    inputmode="numeric"
+                                    placeholder="0"
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="time-section">
+                        <section class="time-card">
+                            <h3 class="time-card-title">
+                                集結開始時刻
+                            </h3>
+
+                            <div class="time-display start-time-display">
+                                --:--:--
+                            </div>
+
+                            <div class="time-status">
+                                現在時刻に追従中
+                            </div>
+
+                            <div class="time-buttons">
+                                <button
+                                    type="button"
+                                    class="rally-button fix-rally-button"
+                                >
+                                    集結
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="release-button release-rally-button"
+                                    disabled
+                                >
+                                    解除
+                                </button>
+                            </div>
+                        </section>
+
+                        <section class="time-card arrival-card">
+                            <h3 class="time-card-title">
+                                予想着弾時刻
+                            </h3>
+
+                            <div class="time-display arrival-time-display">
+                                --:--:--
+                            </div>
+
+                            <div class="arrival-day-label"></div>
+                        </section>
+                    </div>
+
+                    <div class="calculation-detail">
+                        行軍時間を入力すると、予想着弾時刻が表示されます。
+                    </div>
+
+                    <div class="error-message"></div>
+                </div>
+            `;
+
+            rally.querySelector(
+                ".enemy-leader-name"
+            ).value =
+                data.leaderName ?? "";
+
+            rally.querySelector(
+                ".rally-duration"
+            ).value =
+                String(
+                    data.rallyDuration ??
+                    300
+                );
+
+            rally.querySelector(
+                ".march-input-mode"
+            ).value =
+                data.marchInputMode ??
+                "seconds";
+
+            const totalInput =
+                rally.querySelector(
+                    ".march-total-seconds"
+                );
+
+            const minutesInput =
+                rally.querySelector(
+                    ".march-minutes"
+                );
+
+            const secondsInput =
+                rally.querySelector(
+                    ".march-seconds"
+                );
+
+            if (
+                data.marchTotalSeconds !==
+                    undefined &&
+                data.marchTotalSeconds !== ""
+            ) {
+                totalInput.value =
+                    data.marchTotalSeconds;
+            } else if (
+                data.marchMinutes !==
+                    undefined ||
+                data.marchSeconds !==
+                    undefined
+            ) {
+                minutesInput.value =
+                    data.marchMinutes ?? 0;
+
+                secondsInput.value =
+                    data.marchSeconds ?? 0;
+
+                syncTotalFromMinuteSecond(
+                    rally
+                );
+            }
+
+            enemyRallyContainer.appendChild(
+                rally
+            );
+
+            syncMinuteSecondFromTotal(
+                rally
+            );
+
+            updateMarchInputMode(
+                rally
+            );
+
+            updateRallyTitles();
+            updateRallyDisplay(rally);
+            saveAllData();
+        }
+
+        function duplicateEnemyRally(
+            sourceRally
+        ) {
+            addEnemyRally({
+                leaderName:
+                    sourceRally.querySelector(
+                        ".enemy-leader-name"
+                    ).value
+                        ? `${sourceRally.querySelector(
+                            ".enemy-leader-name"
+                        ).value} コピー`
+                        : "",
+
+                rallyDuration:
+                    sourceRally.querySelector(
+                        ".rally-duration"
+                    ).value,
+
+                marchInputMode:
+                    sourceRally.querySelector(
+                        ".march-input-mode"
+                    ).value,
+
+                marchTotalSeconds:
+                    sourceRally.querySelector(
+                        ".march-total-seconds"
+                    ).value,
+
+                isFixed: false
+            });
+        }
+
+        function saveAllData() {
+            const data = [];
+
+            enemyRallyContainer
+                .querySelectorAll(
+                    ".enemy-rally"
+                )
+                .forEach(rally => {
+                    data.push({
+                        id:
+                            rally.dataset.rallyId,
+
+                        leaderName:
+                            rally.querySelector(
+                                ".enemy-leader-name"
+                            ).value,
+
+                        rallyDuration:
+                            rally.querySelector(
+                                ".rally-duration"
+                            ).value,
+
+                        marchInputMode:
+                            rally.querySelector(
+                                ".march-input-mode"
+                            ).value,
+
+                        marchTotalSeconds:
+                            rally.querySelector(
+                                ".march-total-seconds"
+                            ).value,
+
+                        isFixed:
+                            rally.dataset
+                                .isFixed ===
+                            "true",
+
+                        fixedUnixSeconds:
+                            rally.dataset
+                                .fixedUnixSeconds ??
+                            null
+                    });
+                });
+
+            localStorage.setItem(
+                STORAGE_KEY,
+                JSON.stringify(data)
+            );
+        }
+
+        function loadAllData() {
+            const savedText =
+                localStorage.getItem(
+                    STORAGE_KEY
+                );
+
+            if (!savedText) {
+                addEnemyRally();
+                return;
+            }
+
+            try {
+                const savedData =
+                    JSON.parse(savedText);
+
+                if (
+                    !Array.isArray(
+                        savedData
+                    ) ||
+                    savedData.length === 0
+                ) {
+                    addEnemyRally();
+                    return;
+                }
+
+                savedData.forEach(
+                    rallyData => {
+                        addEnemyRally(
+                            rallyData
+                        );
+                    }
+                );
+            } catch (error) {
+                console.error(
+                    "保存データの読み込みに失敗しました。",
+                    error
+                );
+
+                addEnemyRally();
+            }
+        }
+
+        enemyRallyContainer
+            .addEventListener(
+                "click",
+                event => {
+                    const target =
+                        event.target;
+
+                    const rally =
+                        target.closest(
+                            ".enemy-rally"
+                        );
+
+                    if (!rally) {
+                        return;
+                    }
+
+                    if (
+                        target.classList.contains(
+                            "fix-rally-button"
+                        )
+                    ) {
+                        fixRallyTime(rally);
+                        return;
+                    }
+
+                    if (
+                        target.classList.contains(
+                            "release-rally-button"
+                        )
+                    ) {
+                        releaseRallyTime(
+                            rally
+                        );
+
+                        return;
+                    }
+
+                    if (
+                        target.classList.contains(
+                            "duplicate-rally-button"
+                        )
+                    ) {
+                        duplicateEnemyRally(
+                            rally
+                        );
+
+                        return;
+                    }
+
+                    if (
+                        target.classList.contains(
+                            "remove-rally-button"
+                        )
+                    ) {
+                        rally.remove();
+
+                        updateRallyTitles();
+
+                        if (
+                            enemyRallyContainer
+                                .querySelectorAll(
+                                    ".enemy-rally"
+                                ).length === 0
+                        ) {
+                            addEnemyRally();
+                        }
+
+                        saveAllData();
+                    }
+                }
+            );
+
+        enemyRallyContainer
+            .addEventListener(
+                "input",
+                event => {
+                    const target =
+                        event.target;
+
+                    const rally =
+                        target.closest(
+                            ".enemy-rally"
+                        );
+
+                    if (!rally) {
+                        return;
+                    }
+
+                    clearInputError(target);
+
+                    if (
+                        target.classList.contains(
+                            "enemy-leader-name"
+                        )
+                    ) {
+                        updateRallyTitles();
+                    }
+
+                    if (
+                        target.classList.contains(
+                            "march-total-seconds"
+                        )
+                    ) {
+                        syncMinuteSecondFromTotal(
+                            rally
+                        );
+                    }
+
+                    if (
+                        target.classList.contains(
+                            "march-minutes"
+                        ) ||
+                        target.classList.contains(
+                            "march-seconds"
+                        )
+                    ) {
+                        syncTotalFromMinuteSecond(
+                            rally,
+                            false
+                        );
+                    }
+
+                    updatePrediction(rally);
+                    saveAllData();
+                }
+            );
+
+        enemyRallyContainer
+            .addEventListener(
+                "change",
+                event => {
+                    const target =
+                        event.target;
+
+                    const rally =
+                        target.closest(
+                            ".enemy-rally"
+                        );
+
+                    if (!rally) {
+                        return;
+                    }
+
+                    clearInputError(target);
+
+                    if (
+                        target.classList.contains(
+                            "march-input-mode"
+                        )
+                    ) {
+                        updateMarchInputMode(
+                            rally
+                        );
+                    }
+
+                    if (
+                        target.classList.contains(
+                            "march-minutes"
+                        ) ||
+                        target.classList.contains(
+                            "march-seconds"
+                        )
+                    ) {
+                        syncTotalFromMinuteSecond(
+                            rally,
+                            true
+                        );
+                    }
+
+                    updatePrediction(rally);
+                    saveAllData();
+                }
+            );
+
+        addEnemyRallyButton
+            .addEventListener(
+                "click",
+                () => addEnemyRally()
+            );
+
+        /*
+         * 未固定の集結開始時刻と
+         * 予想着弾時刻を毎秒更新します。
+         */
+        setInterval(() => {
+            enemyRallyContainer
+                .querySelectorAll(
+                    ".enemy-rally"
+                )
+                .forEach(rally => {
+                    if (
+                        rally.dataset
+                            .isFixed !==
+                        "true"
+                    ) {
+                        updateRallyDisplay(
+                            rally
+                        );
+                    }
+                });
+        }, 250);
+
+        loadAllData();
+    </script>
+</body>
+</html>
