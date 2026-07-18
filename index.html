@@ -135,9 +135,10 @@
         .wave-settings {
             display: grid;
             grid-template-columns:
+                minmax(170px, 1fr)
                 minmax(180px, 1fr)
-                minmax(190px, 1fr)
-                minmax(180px, 0.85fr);
+                minmax(150px, 0.75fr)
+                minmax(180px, 0.9fr);
             gap: 14px;
         }
 
@@ -490,7 +491,7 @@
         "use strict";
 
         const STORAGE_KEY =
-            "rallyCalculationToolDataV8";
+            "rallyCalculationToolDataV9";
 
         const MAX_RALLY_LEADERS_PER_WAVE = 6;
         const SECONDS_PER_DAY = 24 * 60 * 60;
@@ -1278,6 +1279,20 @@
                         </div>
 
                         <div class="field">
+                            <label>集結時間</label>
+
+                            <select class="rally-duration">
+                                <option value="300">
+                                    5分集結
+                                </option>
+
+                                <option value="600">
+                                    10分集結
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="field">
                             <label>
                                 行軍時間の入力方式
                             </label>
@@ -1449,6 +1464,13 @@
                 data.mode ?? "rally";
 
             wave.querySelector(
+                ".rally-duration"
+            ).value =
+                String(
+                    data.rallyDuration ?? 300
+                );
+
+            wave.querySelector(
                 ".march-input-mode"
             ).value =
                 data.marchInputMode ??
@@ -1548,6 +1570,13 @@
                 wave.querySelector(
                     ".calculation-mode"
                 ).value;
+
+            const rallyDurationSeconds =
+                Number(
+                    wave.querySelector(
+                        ".rally-duration"
+                    ).value
+                );
 
             const waveError =
                 wave.querySelector(
@@ -1702,40 +1731,60 @@
                 );
 
             let commonArrivalSeconds;
-            let firstDepartureSeconds;
+            let firstRallyStartSeconds;
 
             if (
                 calculationMode === "rally"
             ) {
-                firstDepartureSeconds =
+                /*
+                 * 入力した時刻は、最も行軍時間が長い
+                 * 集結主が集結を開始する時刻です。
+                 *
+                 * 集結開始時刻
+                 * ＋ 集結時間（5分または10分）
+                 * ＋ 行軍時間
+                 * ＝ 共通着弾時刻
+                 */
+                firstRallyStartSeconds =
                     referenceSeconds;
 
                 commonArrivalSeconds =
-                    firstDepartureSeconds +
+                    firstRallyStartSeconds +
+                    rallyDurationSeconds +
                     longestMarchSeconds;
             } else {
+                /*
+                 * 入力した時刻は共通着弾時刻です。
+                 *
+                 * 共通着弾時刻
+                 * − 集結時間（5分または10分）
+                 * − 行軍時間
+                 * ＝ 各集結主が集結を開始する時刻
+                 */
                 commonArrivalSeconds =
                     referenceSeconds;
 
-                firstDepartureSeconds =
+                firstRallyStartSeconds =
                     commonArrivalSeconds -
+                    rallyDurationSeconds -
                     longestMarchSeconds;
             }
 
             const resultData =
                 calculationData.map(item => {
-                    const departureSeconds =
+                    const rallyStartSeconds =
                         commonArrivalSeconds -
+                        rallyDurationSeconds -
                         item.marchSeconds;
 
                     return {
                         ...item,
 
-                        departureSeconds,
+                        rallyStartSeconds,
 
-                        departureTime:
+                        rallyStartTime:
                             secondsToTime(
-                                departureSeconds
+                                rallyStartSeconds
                             )
                     };
                 });
@@ -1743,14 +1792,14 @@
             resultData.sort((a, b) => {
                 const elapsedA =
                     normalizeSeconds(
-                        a.departureSeconds -
-                        firstDepartureSeconds
+                        a.rallyStartSeconds -
+                        firstRallyStartSeconds
                     );
 
                 const elapsedB =
                     normalizeSeconds(
-                        b.departureSeconds -
-                        firstDepartureSeconds
+                        b.rallyStartSeconds -
+                        firstRallyStartSeconds
                     );
 
                 if (
@@ -1789,7 +1838,7 @@
 
             resultData.forEach(item => {
                 copyLines.push(
-                    `${item.name}　${item.departureTime}`
+                    `${item.name}　${item.rallyStartTime}`
                 );
             });
 
@@ -1804,9 +1853,9 @@
             resultPanel.dataset.copyText =
                 copyText;
 
-            const firstDepartureTime =
+            const firstRallyStartTime =
                 secondsToTime(
-                    firstDepartureSeconds
+                    firstRallyStartSeconds
                 );
 
             const commonArrivalTime =
@@ -1814,11 +1863,17 @@
                     commonArrivalSeconds
                 );
 
+            const rallyDurationMinutes =
+                rallyDurationSeconds / 60;
+
             resultPanel.querySelector(
                 ".reference-time-display"
             ).innerHTML = `
-                集結開始時間：
-                <strong>${firstDepartureTime}</strong>
+                最初の集結開始時間：
+                <strong>${firstRallyStartTime}</strong>
+                <br>
+                集結時間：
+                <strong>${rallyDurationMinutes}分</strong>
                 <br>
                 集結着弾時間：
                 <strong>${commonArrivalTime}</strong>
@@ -1873,6 +1928,11 @@
                         mode:
                             wave.querySelector(
                                 ".calculation-mode"
+                            ).value,
+
+                        rallyDuration:
+                            wave.querySelector(
+                                ".rally-duration"
                             ).value,
 
                         marchInputMode:
@@ -2061,6 +2121,11 @@
                 mode:
                     sourceWave.querySelector(
                         ".calculation-mode"
+                    ).value,
+
+                rallyDuration:
+                    sourceWave.querySelector(
+                        ".rally-duration"
                     ).value,
 
                 marchInputMode:
