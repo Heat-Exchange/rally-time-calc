@@ -37,14 +37,15 @@
         }
 
         button {
+            min-height: 42px;
             padding: 10px 16px;
             border: 0;
-            border-radius: 7px;
+            border-radius: 8px;
             cursor: pointer;
         }
 
         button:disabled {
-            opacity: 0.55;
+            opacity: 0.5;
             cursor: not-allowed;
         }
 
@@ -56,7 +57,7 @@
             color: #222;
             background: #fff;
             border: 1px solid #b9c1ce;
-            border-radius: 7px;
+            border-radius: 8px;
         }
 
         input:focus,
@@ -79,7 +80,7 @@
         .page-description {
             margin: 0 0 22px;
             color: #667085;
-            line-height: 1.6;
+            line-height: 1.7;
         }
 
         .top-actions {
@@ -134,6 +135,10 @@
             border-color: #e09a74;
         }
 
+        .enemy-rally.departed {
+            border-color: #d92d20;
+        }
+
         .enemy-rally-header {
             display: flex;
             align-items: center;
@@ -146,6 +151,10 @@
 
         .enemy-rally.fixed .enemy-rally-header {
             background: #fff1e9;
+        }
+
+        .enemy-rally.departed .enemy-rally-header {
+            background: #fff0f0;
         }
 
         .enemy-rally-title {
@@ -213,7 +222,7 @@
             display: grid;
             grid-template-columns:
                 minmax(280px, 1fr)
-                minmax(240px, 1fr);
+                minmax(260px, 1fr);
             gap: 14px;
             margin-top: 20px;
         }
@@ -222,7 +231,7 @@
             padding: 16px;
             background: #f8fafc;
             border: 1px solid #dfe4ec;
-            border-radius: 9px;
+            border-radius: 10px;
         }
 
         .time-card-title {
@@ -280,6 +289,42 @@
             font-weight: 700;
         }
 
+        .countdown-area {
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top:
+                1px solid rgba(255, 255, 255, 0.35);
+        }
+
+        .countdown-label {
+            color: #dbeafe;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .countdown-display {
+            margin-top: 4px;
+            font-variant-numeric: tabular-nums;
+            font-size: clamp(28px, 5vw, 38px);
+            font-weight: 800;
+            letter-spacing: 0.05em;
+        }
+
+        .countdown-area.elapsed {
+            margin-right: -16px;
+            margin-bottom: -16px;
+            margin-left: -16px;
+            padding-right: 16px;
+            padding-bottom: 16px;
+            padding-left: 16px;
+            background: #b42318;
+        }
+
+        .countdown-area.elapsed .countdown-label,
+        .countdown-area.elapsed .countdown-display {
+            color: #fff;
+        }
+
         .time-edit-area {
             margin-top: 14px;
             padding-top: 14px;
@@ -300,6 +345,7 @@
         }
 
         .time-adjust-buttons button {
+            min-height: 38px;
             padding: 7px 10px;
             font-size: 13px;
         }
@@ -341,7 +387,7 @@
             padding: 11px 12px;
             color: #475467;
             background: #f8fafc;
-            border-radius: 7px;
+            border-radius: 8px;
             font-size: 13px;
             line-height: 1.7;
         }
@@ -433,7 +479,8 @@
         <h1>敵集結着弾予測ツール</h1>
 
         <p class="page-description">
-            「集結」を押した時刻に、集結時間と敵の行軍時間を加えて着弾時刻を予測します。
+            敵の集結開始時刻、集結時間、行軍時間から着弾時刻を予測します。
+            「集結」を押すと開始時刻が固定され、ゲーム画面と同じように出発までの時間が減っていきます。
         </p>
 
         <div class="top-actions">
@@ -453,7 +500,7 @@
         "use strict";
 
         const STORAGE_KEY =
-            "enemyRallyPredictionToolDataV2";
+            "enemyRallyPredictionToolDataV3";
 
         const SECONDS_PER_DAY =
             24 * 60 * 60;
@@ -516,7 +563,7 @@
             ) % SECONDS_PER_DAY;
         }
 
-        function secondsToTime(totalSeconds) {
+        function secondsToClockTime(totalSeconds) {
             let normalized =
                 normalizeSeconds(totalSeconds);
 
@@ -537,6 +584,41 @@
 
             return [
                 String(hours).padStart(2, "0"),
+                String(minutes).padStart(2, "0"),
+                String(seconds).padStart(2, "0")
+            ].join(":");
+        }
+
+        function formatCountdown(totalSeconds) {
+            const absoluteSeconds =
+                Math.abs(
+                    Math.ceil(totalSeconds)
+                );
+
+            const hours =
+                Math.floor(
+                    absoluteSeconds / 3600
+                );
+
+            const minutes =
+                Math.floor(
+                    (
+                        absoluteSeconds % 3600
+                    ) / 60
+                );
+
+            const seconds =
+                absoluteSeconds % 60;
+
+            if (hours > 0) {
+                return [
+                    String(hours).padStart(2, "0"),
+                    String(minutes).padStart(2, "0"),
+                    String(seconds).padStart(2, "0")
+                ].join(":");
+            }
+
+            return [
                 String(minutes).padStart(2, "0"),
                 String(seconds).padStart(2, "0")
             ].join(":");
@@ -667,7 +749,8 @@
             }
 
             const totalSeconds =
-                minutes * 60 + seconds;
+                minutes * 60 +
+                seconds;
 
             totalInput.value =
                 totalSeconds;
@@ -775,8 +858,7 @@
 
             const fixedDate =
                 new Date(
-                    fixedUnixSeconds *
-                    1000
+                    fixedUnixSeconds * 1000
                 );
 
             rally.querySelector(
@@ -801,6 +883,89 @@
                 ).padStart(2, "0");
         }
 
+        function updateDepartureCountdown(rally) {
+            const countdownArea =
+                rally.querySelector(
+                    ".countdown-area"
+                );
+
+            const countdownLabel =
+                rally.querySelector(
+                    ".countdown-label"
+                );
+
+            const countdownDisplay =
+                rally.querySelector(
+                    ".countdown-display"
+                );
+
+            const departureUnixSeconds =
+                Number(
+                    rally.dataset
+                        .departureUnixSeconds
+                );
+
+            if (
+                !Number.isFinite(
+                    departureUnixSeconds
+                )
+            ) {
+                countdownLabel.textContent =
+                    "集結出発まで";
+
+                countdownDisplay.textContent =
+                    "--:--";
+
+                countdownArea.classList.remove(
+                    "elapsed"
+                );
+
+                rally.classList.remove(
+                    "departed"
+                );
+
+                return;
+            }
+
+            const remainingSeconds =
+                departureUnixSeconds -
+                Date.now() / 1000;
+
+            if (remainingSeconds > 0) {
+                countdownLabel.textContent =
+                    "集結出発まで";
+
+                countdownDisplay.textContent =
+                    formatCountdown(
+                        remainingSeconds
+                    );
+
+                countdownArea.classList.remove(
+                    "elapsed"
+                );
+
+                rally.classList.remove(
+                    "departed"
+                );
+            } else {
+                countdownLabel.textContent =
+                    "集結出発済み";
+
+                countdownDisplay.textContent =
+                    `${formatCountdown(
+                        remainingSeconds
+                    )} 経過`;
+
+                countdownArea.classList.add(
+                    "elapsed"
+                );
+
+                rally.classList.add(
+                    "departed"
+                );
+            }
+        }
+
         function updateRallyDisplay(rally) {
             const startUnixSeconds =
                 getRallyStartUnixSeconds(
@@ -809,19 +974,15 @@
 
             const startDate =
                 new Date(
-                    startUnixSeconds *
-                    1000
-                );
-
-            const startTime =
-                secondsToTime(
-                    dateToSeconds(startDate)
+                    startUnixSeconds * 1000
                 );
 
             rally.querySelector(
                 ".start-time-display"
             ).textContent =
-                startTime;
+                secondsToClockTime(
+                    dateToSeconds(startDate)
+                );
 
             const isFixed =
                 rally.dataset.isFixed ===
@@ -871,7 +1032,8 @@
                 );
             } else {
                 rally.classList.remove(
-                    "fixed"
+                    "fixed",
+                    "departed"
                 );
 
                 status.textContent =
@@ -896,13 +1058,6 @@
             const marchInput =
                 rally.querySelector(
                     ".march-total-seconds"
-                );
-
-            clearInputError(marchInput);
-
-            const marchSeconds =
-                parseNonNegativeInteger(
-                    marchInput.value
                 );
 
             const rallyDuration =
@@ -932,7 +1087,26 @@
                     ".error-message"
                 );
 
+            clearInputError(marchInput);
             errorMessage.textContent = "";
+
+            const startUnixSeconds =
+                getRallyStartUnixSeconds(
+                    rally
+                );
+
+            const departureUnixSeconds =
+                startUnixSeconds +
+                rallyDuration;
+
+            rally.dataset.departureUnixSeconds =
+                String(
+                    departureUnixSeconds
+                );
+
+            updateDepartureCountdown(
+                rally
+            );
 
             if (
                 marchInput.value === ""
@@ -946,8 +1120,16 @@
                 calculationDetail.textContent =
                     "行軍時間を入力すると、予想着弾時刻が表示されます。";
 
+                delete rally.dataset
+                    .arrivalUnixSeconds;
+
                 return;
             }
+
+            const marchSeconds =
+                parseNonNegativeInteger(
+                    marchInput.value
+                );
 
             if (
                 marchSeconds === null
@@ -963,27 +1145,28 @@
                 arrivalDayLabel.textContent =
                     "";
 
+                delete rally.dataset
+                    .arrivalUnixSeconds;
+
                 return;
             }
 
-            const startUnixSeconds =
-                getRallyStartUnixSeconds(
-                    rally
-                );
-
             const arrivalUnixSeconds =
-                startUnixSeconds +
-                rallyDuration +
+                departureUnixSeconds +
                 marchSeconds;
+
+            rally.dataset.arrivalUnixSeconds =
+                String(
+                    arrivalUnixSeconds
+                );
 
             const arrivalDate =
                 new Date(
-                    arrivalUnixSeconds *
-                    1000
+                    arrivalUnixSeconds * 1000
                 );
 
             arrivalDisplay.textContent =
-                secondsToTime(
+                secondsToClockTime(
                     dateToSeconds(
                         arrivalDate
                     )
@@ -991,8 +1174,7 @@
 
             const startDate =
                 new Date(
-                    startUnixSeconds *
-                    1000
+                    startUnixSeconds * 1000
                 );
 
             const startDay =
@@ -1069,6 +1251,10 @@
 
             delete rally.dataset
                 .fixedUnixSeconds;
+
+            rally.classList.remove(
+                "departed"
+            );
 
             updateRallyDisplay(rally);
             saveAllData();
@@ -1199,8 +1385,7 @@
 
             const fixedDate =
                 new Date(
-                    currentFixedTime *
-                    1000
+                    currentFixedTime * 1000
                 );
 
             fixedDate.setHours(
@@ -1452,6 +1637,14 @@
                                     >
                                         ＋5秒
                                     </button>
+
+                                    <button
+                                        type="button"
+                                        class="secondary-button adjust-time-button"
+                                        data-offset-seconds="10"
+                                    >
+                                        ＋10秒
+                                    </button>
                                 </div>
 
                                 <div class="manual-time-edit">
@@ -1514,6 +1707,16 @@
                             </div>
 
                             <div class="arrival-day-label"></div>
+
+                            <div class="countdown-area">
+                                <div class="countdown-label">
+                                    集結出発まで
+                                </div>
+
+                                <div class="countdown-display">
+                                    --:--
+                                </div>
+                            </div>
                         </section>
                     </div>
 
@@ -1937,8 +2140,8 @@
             );
 
         /*
-         * 固定されていない集結だけ、
-         * 現在時刻に合わせて更新します。
+         * 未固定の集結は現在時刻に追従。
+         * 固定済みの集結は出発までの時間だけ更新します。
          */
         setInterval(() => {
             enemyRallyContainer
@@ -1952,6 +2155,10 @@
                         "true"
                     ) {
                         updateRallyDisplay(
+                            rally
+                        );
+                    } else {
+                        updateDepartureCountdown(
                             rally
                         );
                     }
